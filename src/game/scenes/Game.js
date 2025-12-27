@@ -15,6 +15,7 @@ export class Game extends Scene {
   preload() {
     this.load.setPath("assets");
     this.load.image("background", "bg.png");
+    this.load.image("cloud", "cloud.png"); // Added cloud asset
     this.load.image("spike", "spike.png");
     this.load.image("hand", "hand.png");
     this.load.image("red", "red.png");
@@ -51,8 +52,72 @@ export class Game extends Scene {
   }
 
   setupBackground() {
+    // Background base
     this.add.image(540, 960, "background");
+
+    // Add 6 animated clouds
+    const numClouds = 6;
+    const cloudSpeed = 30000; // Uniform speed for all clouds
+    const skyTop = 494;
+    const skyBottom = 1500;
+    const skyHeightRange = skyBottom - skyTop;
+
+    for (let i = 0; i < numClouds; i++) {
+      // Calculate a base Y to ensure even vertical distribution
+      const baseY = skyTop + (skyHeightRange / numClouds) * i;
+      // Add a random offset (jitter) so they aren't in a perfect line
+      const y = baseY + Phaser.Math.Between(-50, 50);
+
+      // Randomize initial X fully across the screen width to avoid the "staircase" look
+      const initialX = Phaser.Math.Between(0, 1080);
+
+      const scale = Phaser.Math.FloatBetween(8, 12);
+
+      const cloud = this.add.image(initialX, y, "cloud");
+      cloud.setScale(scale);
+      cloud.setAlpha(0.7);
+      cloud.setDepth(1);
+
+      // Calculate how much distance is left to cover for the first run
+      const targetX = 1280 + cloud.width * scale;
+      const remainingDistance = targetX - initialX;
+      const totalDistance = targetX + 200 + cloud.width * scale;
+      const initialDuration = cloudSpeed * (remainingDistance / totalDistance);
+
+      this.tweens.add({
+        targets: cloud,
+        x: targetX,
+        duration: initialDuration,
+        repeat: 0,
+        onComplete: () => {
+          this.startCloudLoop(cloud, cloudSpeed, skyTop, skyBottom);
+        },
+      });
+    }
+
     this.cameras.main.setRoundPixels(true);
+  }
+
+  // Helper to maintain the uniform loop
+  startCloudLoop(cloud, speed, skyTop, skyBottom) {
+    const scale = Phaser.Math.FloatBetween(8, 12);
+    cloud.setScale(scale);
+    // Spawn completely off-screen to the left
+    cloud.x = -200 - cloud.width * scale;
+    cloud.y = Phaser.Math.Between(skyTop, skyBottom);
+
+    this.tweens.add({
+      targets: cloud,
+      x: 1280 + cloud.width * scale,
+      duration: speed,
+      repeat: -1,
+      onRepeat: () => {
+        const newScale = Phaser.Math.FloatBetween(8, 12);
+        cloud.setScale(newScale);
+        cloud.x = -200 - cloud.width * newScale;
+        cloud.y = Phaser.Math.Between(skyTop, skyBottom);
+      },
+    });
   }
 
   setupPlayer() {
