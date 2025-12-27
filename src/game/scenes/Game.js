@@ -166,6 +166,9 @@ export class Game extends Scene {
 
     this.physics.add.collider(this.titlePlayer, this.ground);
 
+    // Setup particle effects for title player
+    this.titleParticleEffects = new ParticleEffects(this, this.titlePlayer);
+
     this.runTitlePlayerLoop();
   }
 
@@ -185,14 +188,32 @@ export class Game extends Scene {
             duration: 300,
             ease: "Cubic.out",
             delay: 1000,
-            onStart: () => this.titlePlayer.setFlipX(true),
+            onStart: () => {
+              this.titlePlayer.setFlipX(true);
+              // Dash left particle effect
+              this.titleParticleEffects.resetToDash();
+              this.titleParticleEffects.setDashOffset(40, 0);
+              this.titleParticleEffects.startDash();
+            },
+            onComplete: () => {
+              this.titleParticleEffects.stopDash();
+            },
           },
           {
             x: 820,
             duration: 300,
             ease: "Cubic.out",
             delay: 700,
-            onStart: () => this.titlePlayer.setFlipX(false),
+            onStart: () => {
+              this.titlePlayer.setFlipX(false);
+              // Dash right particle effect
+              this.titleParticleEffects.resetToDash();
+              this.titleParticleEffects.setDashOffset(-40, 0);
+              this.titleParticleEffects.startDash();
+            },
+            onComplete: () => {
+              this.titleParticleEffects.stopDash();
+            },
           },
           {
             y: 1500,
@@ -205,6 +226,8 @@ export class Game extends Scene {
                 this.titlePlayer.body.touching.down
               ) {
                 this.titlePlayer.setVelocityY(-1400);
+                // Jump particle effect
+                this.titleParticleEffects.playJumpEffect();
 
                 // Wait for landing then continue loop
                 const checkLanding = () => {
@@ -238,21 +261,48 @@ export class Game extends Scene {
             duration: 300,
             ease: "Cubic.out",
             delay: 1000,
-            onStart: () => this.titlePlayer.setFlipX(false),
+            onStart: () => {
+              this.titlePlayer.setFlipX(false);
+              // Dash right particle effect
+              this.titleParticleEffects.resetToDash();
+              this.titleParticleEffects.setDashOffset(-40, 0);
+              this.titleParticleEffects.startDash();
+            },
+            onComplete: () => {
+              this.titleParticleEffects.stopDash();
+            },
           },
           {
             x: 255,
             duration: 300,
             ease: "Cubic.out",
             delay: 700,
-            onStart: () => this.titlePlayer.setFlipX(true),
+            onStart: () => {
+              this.titlePlayer.setFlipX(true);
+              // Dash left particle effect
+              this.titleParticleEffects.resetToDash();
+              this.titleParticleEffects.setDashOffset(40, 0);
+              this.titleParticleEffects.startDash();
+            },
+            onComplete: () => {
+              this.titleParticleEffects.stopDash();
+            },
           },
           {
             x: 820,
             duration: 300,
             ease: "Cubic.out",
             delay: 700,
-            onStart: () => this.titlePlayer.setFlipX(false),
+            onStart: () => {
+              this.titlePlayer.setFlipX(false);
+              // Dash right particle effect
+              this.titleParticleEffects.resetToDash();
+              this.titleParticleEffects.setDashOffset(-40, 0);
+              this.titleParticleEffects.startDash();
+            },
+            onComplete: () => {
+              this.titleParticleEffects.stopDash();
+            },
           },
           {
             y: 1500,
@@ -265,6 +315,8 @@ export class Game extends Scene {
                 this.titlePlayer.body.touching.down
               ) {
                 this.titlePlayer.setVelocityY(-1400);
+                // Jump particle effect
+                this.titleParticleEffects.playJumpEffect();
 
                 // Wait for landing then continue loop
                 const checkLanding = () => {
