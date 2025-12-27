@@ -11,11 +11,10 @@ export class TutorialManager {
   }
 
   createSpikeTrail(spike) {
-    // Reuse the 'speedLine' texture created in Game.js/ParticleEffects.js
     const trail = this.scene.add.particles(0, 0, "speedLine", {
       follow: spike,
       speed: 0,
-      angle: 90, // Vertical orientation
+      angle: 90,
       emitZone: {
         type: "random",
         source: new Phaser.Geom.Rectangle(-20, -100, 40, 10),
@@ -33,109 +32,154 @@ export class TutorialManager {
   }
 
   async startTutorial() {
+    if (this.isTutorialActive) return;
     this.isTutorialActive = true;
 
-    // 1. Disable player movement (Keyboard and Touch)
+    // Part 1: Left Spike
+    this.spawnFallingSpike(
+      255,
+      "Swipe to the right (Or Press D) to avoid the falling spikes",
+      "right",
+      () => {
+        // Part 2: Right Spike
+        this.scene.time.delayedCall(800, () => {
+          this.spawnFallingSpike(
+            820,
+            "Swipe to the left (Or Press A) this time",
+            "left",
+            () => {
+              this.isTutorialActive = false;
+              console.log("Tutorial Complete");
+            }
+          );
+        });
+      }
+    );
+  }
+
+  spawnFallingSpike(xPos, instructionText, direction, onComplete) {
+    // 1. Disable player movement
     this.inputHandler.enabled = false;
 
-    // 2. Summon falling spike at x: 255
-    const spike = this.scene.physics.add.sprite(255, -100, "spike");
+    // 2. Summon spike
+    const spike = this.scene.physics.add.sprite(xPos, -100, "spike");
     spike.setScale(GAME_CONFIG.PLAYER.SCALE - 10);
-    spike.setGravityY(1000); // Give it some weight
+    spike.setGravityY(1000);
     spike.setDepth(5);
+    spike.isPaused = false;
 
-    // Create the visual trail
     const trail = this.createSpikeTrail(spike);
 
-    // 3. Freeze halfway (Target Y around 800)
-    this.scene.time.addEvent({
-      delay: 10,
-      repeat: -1,
+    // 3. Freeze halfway detection
+    const freezeEvent = this.scene.time.addEvent({
+      delay: 16, // roughly 60fps check
       callback: () => {
+        if (!spike.active) {
+          freezeEvent.remove();
+          return;
+        }
+
         if (spike.y >= 800 && !spike.isPaused) {
           spike.isPaused = true;
+          // Stop physics immediately
           spike.body.setAllowGravity(false);
           spike.setVelocity(0);
-
-          // Pause the trail emission while frozen
           trail.stop();
 
-          this.showTutorialUI(spike, trail);
+          // Show UI
+          this.showTutorialUI(
+            spike,
+            trail,
+            instructionText,
+            direction,
+            onComplete
+          );
+
+          // CRITICAL: Kill this loop immediately to prevent duplicate UI
+          freezeEvent.remove();
         }
       },
       callbackScope: this,
+      loop: true,
     });
   }
 
-  showTutorialUI(spike, trail) {
-    // 4. Display Text (Pixel Style via CDN font)
+  showTutorialUI(spike, trail, instructionText, direction, onComplete) {
+    // 4. Display Text
     const style = {
       fontFamily: '"Press Start 2P"',
       fontSize: "40px",
       fill: "#1d2b53",
       align: "center",
-      wordWrap: { width: 800 },
+      wordWrap: { width: 900 },
     };
 
     const text = this.scene.add
-      .text(540, 1000, "Swipe to the right to avoid the falling spikes", style)
+      .text(540, 1000, instructionText, style)
       .setOrigin(0.5)
-      .setDepth(10);
+      .setDepth(100);
 
-    // 5. Display hand gesturing to swipe right
+    // 5. Display hand gesturing
+    const startX = direction === "right" ? 400 : 680;
+    const endX = direction === "right" ? 680 : 400;
+
     const hand = this.scene.add
-      .image(400, 1200, "hand")
+      .image(startX, 1200, "hand")
       .setScale(10)
-      .setDepth(11);
+      .setDepth(101);
 
-    // Animate the hand (Left to Right)
-    this.scene.tweens.add({
+    if (direction === "left") hand.setFlipX(true);
+
+    const handTween = this.scene.tweens.add({
       targets: hand,
-      x: 680,
-      duration: 2000,
+      x: endX,
+      duration: 1200,
       repeat: -1,
-      yoyo: false,
-      ease: "Power2",
+      ease: "Cubic.easeInOut",
     });
 
-    // 6. Enable the player movement
+    // 6. Enable movement
     this.inputHandler.enabled = true;
 
-    // 7. Wait for Player Swipe Right
-    // We override the dashRight to trigger the next step
-    const originalDashRight = this.playerController.dashRight.bind(
+    // 7. Wait for Swipe/Action
+    const targetMethod = direction === "right" ? "dashRight" : "dashLeft";
+    const originalMethod = this.playerController[targetMethod].bind(
       this.playerController
     );
 
-    this.playerController.dashRight = () => {
-      originalDashRight();
+    // Override the specific dash method for the tutorial step
+    this.playerController[targetMethod] = () => {
+      // Execute move
+      originalMethod();
 
-      // Cleanup UI
+      // Restore original function immediately to prevent double-triggering
+      this.playerController[targetMethod] = originalMethod;
+
+      // Cleanup UI elements
       text.destroy();
+      handTween.stop();
       hand.destroy();
 
-      // Resume trail as it falls again
+      // Resume spike
       trail.start();
-
-      // 8. Spikes crumble as they fall
+      spike.isPaused = false;
       spike.body.setAllowGravity(true);
-      spike.setGravityY(3000); // Faster fall
+      spike.setGravityY(4000); // Faster drop for impact feel
 
-      // Detection for ground hit
-      this.scene.physics.add.collider(spike, this.scene.ground, () => {
-        this.spikeCrumble(spike, trail);
-      });
-
-      // Restore original function
-      this.playerController.dashRight = originalDashRight;
+      // 8. Ground impact logic
+      const groundCollider = this.scene.physics.add.collider(
+        spike,
+        this.scene.ground,
+        () => {
+          this.scene.physics.world.removeCollider(groundCollider);
+          this.spikeCrumble(spike, trail, onComplete);
+        }
+      );
     };
   }
 
-  spikeCrumble(spike, trail) {
-    // Stop trail immediately on impact
+  spikeCrumble(spike, trail, onComplete) {
     trail.stop();
-
-    // Visual "crumble" using scale and alpha
     this.scene.tweens.add({
       targets: spike,
       scaleX: 0,
@@ -145,8 +189,8 @@ export class TutorialManager {
       duration: 300,
       onComplete: () => {
         spike.destroy();
-        trail.destroy(); // Clean up particles
-        this.isTutorialActive = false;
+        trail.destroy();
+        if (onComplete) onComplete();
       },
     });
   }
