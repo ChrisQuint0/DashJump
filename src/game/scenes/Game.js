@@ -5,6 +5,7 @@ import { PlayerController } from "../controllers/PlayerController";
 import { InputHandler } from "../controllers/InputHandler";
 import { ParticleEffects } from "../effects/ParticleEffects";
 import { GAME_CONFIG } from "../config/GameConfig";
+import { TutorialManager } from "../controllers/TutorialManager";
 
 export class Game extends Scene {
   constructor() {
@@ -14,11 +15,20 @@ export class Game extends Scene {
   preload() {
     this.load.setPath("assets");
     this.load.image("background", "bg.png");
+    this.load.image("spike", "spike.png");
+    this.load.image("hand", "hand.png");
     this.load.spritesheet("player", "blu.png", {
       frameWidth: 9,
       frameHeight: 7,
       endFrame: 1,
     });
+
+    // Load Pixel Font via Google Fonts
+    const link = document.createElement("link");
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
 
     ParticleEffects.createSpeedLineTexture(this);
   }
@@ -29,6 +39,14 @@ export class Game extends Scene {
     this.setupGround();
     this.setupParticles();
     this.setupInput();
+
+    // Initialize and Start Tutorial
+    this.tutorial = new TutorialManager(
+      this,
+      this.playerController,
+      this.inputHandler
+    );
+    this.time.delayedCall(1000, () => this.tutorial.startTutorial());
   }
 
   setupBackground() {

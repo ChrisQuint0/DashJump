@@ -8,6 +8,7 @@ export class InputHandler {
     this.playerController = playerController;
     this.swipeStartX = 0;
     this.swipeStartY = 0;
+    this.enabled = true;
 
     this.setupKeyboard();
     this.setupTouch();
@@ -16,18 +17,18 @@ export class InputHandler {
   setupKeyboard() {
     this.keys = this.scene.input.keyboard.addKeys("W,A,S,D");
 
-    this.scene.input.keyboard.on("keydown-W", () =>
-      this.playerController.jump()
-    );
-    this.scene.input.keyboard.on("keydown-S", () =>
-      this.playerController.fastDrop()
-    );
-    this.scene.input.keyboard.on("keydown-A", () =>
-      this.playerController.dashLeft()
-    );
-    this.scene.input.keyboard.on("keydown-D", () =>
-      this.playerController.dashRight()
-    );
+    this.scene.input.keyboard.on("keydown-W", () => {
+      if (this.enabled) this.playerController.jump();
+    });
+    this.scene.input.keyboard.on("keydown-S", () => {
+      if (this.enabled) this.playerController.fastDrop();
+    });
+    this.scene.input.keyboard.on("keydown-A", () => {
+      if (this.enabled) this.playerController.dashLeft();
+    });
+    this.scene.input.keyboard.on("keydown-D", () => {
+      if (this.enabled) this.playerController.dashRight();
+    });
   }
 
   setupTouch() {
@@ -42,6 +43,8 @@ export class InputHandler {
   }
 
   handleSwipe(pointer) {
+    if (!this.enabled) return;
+
     const swipeDistanceX = pointer.x - this.swipeStartX;
     const swipeDistanceY = pointer.y - this.swipeStartY;
     const threshold = GAME_CONFIG.INPUT.SWIPE_THRESHOLD;
