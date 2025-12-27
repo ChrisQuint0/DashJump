@@ -8,6 +8,15 @@ export class TutorialManager {
     this.playerController = playerController;
     this.inputHandler = inputHandler;
     this.isTutorialActive = false;
+
+    // 1. Constant Text Style
+    this.textStyle = {
+      fontFamily: '"Press Start 2P"',
+      fontSize: "40px",
+      fill: "#1d2b53",
+      align: "center",
+      wordWrap: { width: 900 },
+    };
   }
 
   createSpikeTrail(spike) {
@@ -48,8 +57,13 @@ export class TutorialManager {
             "Swipe to the left (Or Press A) this time",
             "left",
             () => {
-              this.isTutorialActive = false;
-              console.log("Tutorial Complete");
+              // Part 3: Red Rolling Ball
+              this.scene.time.delayedCall(800, () => {
+                this.spawnRollingBall(() => {
+                  this.showFinalText();
+                  this.isTutorialActive = false;
+                });
+              });
             }
           );
         });
@@ -58,10 +72,8 @@ export class TutorialManager {
   }
 
   spawnFallingSpike(xPos, instructionText, direction, onComplete) {
-    // 1. Disable player movement
     this.inputHandler.enabled = false;
 
-    // 2. Summon spike
     const spike = this.scene.physics.add.sprite(xPos, -100, "spike");
     spike.setScale(GAME_CONFIG.PLAYER.SCALE - 10);
     spike.setGravityY(1000);
@@ -70,9 +82,8 @@ export class TutorialManager {
 
     const trail = this.createSpikeTrail(spike);
 
-    // 3. Freeze halfway detection
     const freezeEvent = this.scene.time.addEvent({
-      delay: 16, // roughly 60fps check
+      delay: 16,
       callback: () => {
         if (!spike.active) {
           freezeEvent.remove();
@@ -81,12 +92,10 @@ export class TutorialManager {
 
         if (spike.y >= 800 && !spike.isPaused) {
           spike.isPaused = true;
-          // Stop physics immediately
           spike.body.setAllowGravity(false);
           spike.setVelocity(0);
           trail.stop();
 
-          // Show UI
           this.showTutorialUI(
             spike,
             trail,
@@ -94,8 +103,6 @@ export class TutorialManager {
             direction,
             onComplete
           );
-
-          // CRITICAL: Kill this loop immediately to prevent duplicate UI
           freezeEvent.remove();
         }
       },
@@ -104,22 +111,147 @@ export class TutorialManager {
     });
   }
 
-  showTutorialUI(spike, trail, instructionText, direction, onComplete) {
-    // 4. Display Text
-    const style = {
-      fontFamily: '"Press Start 2P"',
-      fontSize: "40px",
-      fill: "#1d2b53",
-      align: "center",
-      wordWrap: { width: 900 },
-    };
+  spawnRollingBall(onComplete) {
+    this.inputHandler.enabled = false;
+    let hasTriggeredFreeze = false;
 
+    // Side logic
+    const playerX = this.playerController.player.x;
+    const spawnRight = playerX < 540;
+    const spawnX = spawnRight ? 1200 : -120;
+    const targetVelocity = spawnRight ? -600 : 600;
+
+    const ball = this.scene.physics.add.sprite(
+      spawnX,
+      GAME_CONFIG.GROUND.Y - 50,
+      "red"
+    );
+    ball.setScale(GAME_CONFIG.PLAYER.SCALE - 10);
+    ball.setDepth(5);
+    ball.setCircle(ball.width / 2);
+    ball.setVelocityX(targetVelocity);
+    ball.body.setAllowGravity(false);
+
+    // Roll animation
+    const rollTween = this.scene.tweens.add({
+      targets: ball,
+      angle: spawnRight ? -360 : 360,
+      duration: 1000,
+      repeat: -1,
+    });
+
+    const checkDistance = this.scene.time.addEvent({
+      delay: 16,
+      callback: () => {
+        if (!ball.active || hasTriggeredFreeze) return;
+
+        const distance = Math.abs(ball.x - this.playerController.player.x);
+        if (distance <= 250) {
+          hasTriggeredFreeze = true;
+          ball.setVelocityX(0);
+          rollTween.pause();
+          checkDistance.remove();
+          this.showJumpUI(ball, rollTween, onComplete);
+        }
+      },
+      callbackScope: this,
+      loop: true,
+    });
+  }
+
+  showJumpUI(ball, rollTween, onComplete) {
     const text = this.scene.add
-      .text(540, 1000, instructionText, style)
+      .text(540, 1000, "Jump to avoid that thing", this.textStyle)
       .setOrigin(0.5)
       .setDepth(100);
 
-    // 5. Display hand gesturing
+    const hand = this.scene.add
+      .image(540, 1300, "hand")
+      .setScale(10)
+      .setDepth(101);
+
+    const handTween = this.scene.tweens.add({
+      targets: hand,
+      y: 1150,
+      duration: 1000,
+      repeat: -1,
+      ease: "Power2",
+    });
+
+    this.inputHandler.enabled = true;
+
+    const originalJump = this.playerController.jump.bind(this.playerController);
+    this.playerController.jump = () => {
+      originalJump();
+      this.playerController.jump = originalJump; // Restore immediately
+
+      text.destroy();
+      handTween.stop();
+      hand.destroy();
+      rollTween.resume();
+
+      const playerX = this.playerController.player.x;
+      const resumeVelocity = ball.x > playerX ? -1200 : 1200;
+      ball.setVelocityX(resumeVelocity);
+
+      // Out of screen check
+      const exitCheck = this.scene.time.addEvent({
+        delay: 100,
+        callback: () => {
+          if (!ball.active) {
+            exitCheck.remove();
+            return;
+          }
+          if (ball.x < -300 || ball.x > 1400) {
+            ball.destroy();
+            exitCheck.remove();
+            if (onComplete) onComplete();
+          }
+        },
+        callbackScope: this,
+        loop: true,
+      });
+    };
+  }
+
+  showFinalText() {
+    // Only one instance of final text allowed
+    if (this.finalTextObj) return;
+
+    this.finalTextObj = this.scene.add
+      .text(540, 960, "You are Ready", this.textStyle)
+      .setOrigin(0.5)
+      .setDepth(100)
+      .setScale(0);
+
+    this.scene.tweens.add({
+      targets: this.finalTextObj,
+      scale: 1.5,
+      duration: 500,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        this.scene.time.delayedCall(2000, () => {
+          if (!this.finalTextObj) return;
+          this.scene.tweens.add({
+            targets: this.finalTextObj,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => {
+              this.finalTextObj.destroy();
+              this.finalTextObj = null;
+            },
+          });
+        });
+      },
+    });
+  }
+
+  showTutorialUI(spike, trail, instructionText, direction, onComplete) {
+    const text = this.scene.add
+      .text(540, 1000, instructionText, this.textStyle)
+      .setOrigin(0.5)
+      .setDepth(100);
+
     const startX = direction === "right" ? 400 : 680;
     const endX = direction === "right" ? 680 : 400;
 
@@ -127,8 +259,6 @@ export class TutorialManager {
       .image(startX, 1200, "hand")
       .setScale(10)
       .setDepth(101);
-
-    if (direction === "left") hand.setFlipX(true);
 
     const handTween = this.scene.tweens.add({
       targets: hand,
@@ -138,35 +268,26 @@ export class TutorialManager {
       ease: "Cubic.easeInOut",
     });
 
-    // 6. Enable movement
     this.inputHandler.enabled = true;
 
-    // 7. Wait for Swipe/Action
     const targetMethod = direction === "right" ? "dashRight" : "dashLeft";
     const originalMethod = this.playerController[targetMethod].bind(
       this.playerController
     );
 
-    // Override the specific dash method for the tutorial step
     this.playerController[targetMethod] = () => {
-      // Execute move
       originalMethod();
-
-      // Restore original function immediately to prevent double-triggering
       this.playerController[targetMethod] = originalMethod;
 
-      // Cleanup UI elements
       text.destroy();
       handTween.stop();
       hand.destroy();
 
-      // Resume spike
       trail.start();
       spike.isPaused = false;
       spike.body.setAllowGravity(true);
-      spike.setGravityY(4000); // Faster drop for impact feel
+      spike.setGravityY(4000);
 
-      // 8. Ground impact logic
       const groundCollider = this.scene.physics.add.collider(
         spike,
         this.scene.ground,
@@ -178,6 +299,7 @@ export class TutorialManager {
     };
   }
 
+  // 2. Constant Crumble Animation
   spikeCrumble(spike, trail, onComplete) {
     trail.stop();
     this.scene.tweens.add({

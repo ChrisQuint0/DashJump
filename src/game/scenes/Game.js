@@ -17,6 +17,7 @@ export class Game extends Scene {
     this.load.image("background", "bg.png");
     this.load.image("spike", "spike.png");
     this.load.image("hand", "hand.png");
+    this.load.image("red", "red.png");
     this.load.spritesheet("player", "blu.png", {
       frameWidth: 9,
       frameHeight: 7,
