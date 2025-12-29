@@ -9,6 +9,7 @@ import { TutorialManager } from "../controllers/TutorialManager";
 import { TitleScreenManager } from "../controllers/TitleScreenManager";
 import { BackgroundManager } from "../controllers/BackgroundManager";
 import { TransitionManager } from "../controllers/TransitionManager";
+import { DialogueManager } from "../controllers/DialogueManager";
 
 export class Game extends Scene {
   constructor() {
@@ -29,6 +30,8 @@ export class Game extends Scene {
       frameHeight: 7,
       endFrame: 1,
     });
+    this.load.image("geri", "geri.png");
+    this.load.image("bubble", "bubble.png");
 
     this.loadFont();
     this.createSpeedLineTexture();
@@ -69,6 +72,7 @@ export class Game extends Scene {
   setupManagers() {
     this.transitionManager = new TransitionManager(this);
     this.backgroundManager = new BackgroundManager(this);
+    this.dialogueManager = new DialogueManager(this);
   }
 
   setupTitleScreen() {
@@ -141,6 +145,13 @@ export class Game extends Scene {
       this.inputHandler
     );
     this.time.delayedCall(500, () => this.tutorial.startTutorial());
+  }
+
+  startIntroSequence() {
+    this.dialogueManager.showIntroduction(() => {
+      console.log("Dialogue complete! Start Level 1 logic here.");
+      // this.levelManager.startLevel(1);
+    });
   }
 
   update() {

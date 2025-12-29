@@ -215,7 +215,6 @@ export class TutorialManager {
   }
 
   showFinalText() {
-    // Only one instance of final text allowed
     if (this.finalTextObj) return;
 
     this.finalTextObj = this.scene.add
@@ -239,6 +238,11 @@ export class TutorialManager {
             onComplete: () => {
               this.finalTextObj.destroy();
               this.finalTextObj = null;
+
+              // --- TRIGGER DIALOGUE HERE ---
+              if (this.scene.startIntroSequence) {
+                this.scene.startIntroSequence();
+              }
             },
           });
         });
