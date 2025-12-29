@@ -10,6 +10,7 @@ import { TitleScreenManager } from "../controllers/TitleScreenManager";
 import { BackgroundManager } from "../controllers/BackgroundManager";
 import { TransitionManager } from "../controllers/TransitionManager";
 import { DialogueManager } from "../controllers/DialogueManager";
+import { LevelManager } from "../controllers/LevelManager";
 
 export class Game extends Scene {
   constructor() {
@@ -32,6 +33,7 @@ export class Game extends Scene {
     });
     this.load.image("geri", "geri.png");
     this.load.image("bubble", "bubble.png");
+    this.load.image("shootingBoss", "shootingBoss.png");
 
     this.loadFont();
     this.createSpeedLineTexture();
@@ -67,11 +69,16 @@ export class Game extends Scene {
         });
       }
     }
+
+    if (!this.textures.exists("plasma")) {
+      this.createPlasmaBulletTexture();
+    }
   }
 
   setupManagers() {
     this.transitionManager = new TransitionManager(this);
     this.backgroundManager = new BackgroundManager(this);
+    this.dialogueManager = new DialogueManager(this);
     this.dialogueManager = new DialogueManager(this);
   }
 
@@ -96,6 +103,10 @@ export class Game extends Scene {
     this.setupPlayer();
     this.setupParticles();
     this.setupInput();
+
+    // Initialize LevelManager
+    this.levelManager = new LevelManager(this, this.playerController);
+
     this.setupTutorial();
   }
 
@@ -150,8 +161,35 @@ export class Game extends Scene {
   startIntroSequence() {
     this.dialogueManager.showIntroduction(() => {
       console.log("Dialogue complete! Start Level 1 logic here.");
-      // this.levelManager.startLevel(1);
+      this.levelManager.startLevel(60);
     });
+  }
+
+  // Add this to your Game.js (or inside ParticleEffects.js)
+  createPlasmaBulletTexture() {
+    const size = 32;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    // Drawing a glowing radial gradient
+    const gradient = ctx.createRadialGradient(
+      size / 2,
+      size / 2,
+      2,
+      size / 2,
+      size / 2,
+      size / 2
+    );
+    gradient.addColorStop(0, "#ffffff"); // White core
+    gradient.addColorStop(0.3, "#00ff66"); // Bright green inner glow
+    gradient.addColorStop(0.7, "#00cc44"); // Deeper green mid
+    gradient.addColorStop(1, "transparent"); // Outer fade
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    this.textures.addCanvas("plasma", canvas);
   }
 
   update() {
