@@ -11,6 +11,9 @@ export class LevelManager {
     this.difficultyMultiplier = 1;
     this.lastScenarioIndex = -1;
 
+    this.difficultyEvent = null;
+    this.levelEndTimer = null;
+
     // Tracker for active obstacles to prevent "impossible" overlaps
     this.activeBall = null;
     this.activeSpike = null;
@@ -29,7 +32,12 @@ export class LevelManager {
       loop: true,
     });
 
-    this.scene.time.delayedCall(durationSeconds * 1000, () => this.stopLevel());
+    // ADD THIS - Store the level end timer so we can clear it if needed
+    this.levelEndTimer = this.scene.time.delayedCall(
+      durationSeconds * 1000,
+      () => this.stopLevel()
+    );
+
     this.planNextAction();
   }
 
@@ -244,11 +252,16 @@ export class LevelManager {
       }
     });
 
-    this.scene.physics.add.overlap(this.playerController.player, sprite, () => {
-      this.handlePlayerHit();
-      if (sprite === this.activeBall) this.activeBall = null;
-      if (sprite === this.activeSpike) this.activeSpike = null;
+    this.scene.physics.add.overlap(sprite, this.playerController.player, () => {
+      // 1. Destroy the object that hit the player so it doesn't hit twice
       sprite.destroy();
+
+      // 2. Clear tracking references so planNextAction() isn't blocked
+      if (sprite === this.activeSpike) this.activeSpike = null;
+      if (sprite === this.activeBall) this.activeBall = null;
+
+      // 3. Trigger the life reduction in Game.js
+      this.scene.updateLives();
     });
   }
 
@@ -260,8 +273,22 @@ export class LevelManager {
     this.isActive = false;
     this.activeBall = null;
     this.activeSpike = null;
-    if (this.spawnTimer) this.spawnTimer.remove();
-    this.scene.time.removeAllEvents();
+
+    // Clean up all timers
+    if (this.spawnTimer) {
+      this.spawnTimer.remove();
+      this.spawnTimer = null;
+    }
+    if (this.difficultyEvent) {
+      this.difficultyEvent.remove();
+      this.difficultyEvent = null;
+    }
+    if (this.levelEndTimer) {
+      this.levelEndTimer.remove();
+      this.levelEndTimer = null;
+    }
+
+    // REMOVED: this.scene.time.removeAllEvents(); (too aggressive)
 
     const warningText = this.scene.add
       .text(540, 960, "You better move,\nhe's aiming.\nDon't get shot.", {

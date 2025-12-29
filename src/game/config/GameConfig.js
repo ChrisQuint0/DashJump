@@ -7,6 +7,11 @@ export const GAME_CONFIG = {
     SCALE: 25,
     LEFT_X: 255,
     RIGHT_X: 820,
+    MAX_LIVES: 2,
+    HEART_START_X: 60,
+    HEART_START_Y: 60,
+    HEART_SPACING: 80,
+    HEART_SCALE: 8,
   },
 
   GROUND: {

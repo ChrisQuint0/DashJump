@@ -11,11 +11,14 @@ import { BackgroundManager } from "../controllers/BackgroundManager";
 import { TransitionManager } from "../controllers/TransitionManager";
 import { DialogueManager } from "../controllers/DialogueManager";
 import { LevelManager } from "../controllers/LevelManager";
+import { GameOverManager } from "../controllers/GameOverManager";
 
 export class Game extends Scene {
   constructor() {
     super("Game");
     this.isTitleScreen = true;
+    this.lives = GAME_CONFIG.PLAYER.MAX_LIVES;
+    this.hearts = [];
   }
 
   preload() {
@@ -34,6 +37,8 @@ export class Game extends Scene {
     this.load.image("geri", "geri.png");
     this.load.image("bubble", "bubble.png");
     this.load.image("shootingBoss", "shootingBoss.png");
+    this.load.image("heart", "heart.png");
+    this.load.image("emptyHeart", "heartEmpty.png");
 
     this.loadFont();
     this.createSpeedLineTexture();
@@ -54,6 +59,9 @@ export class Game extends Scene {
   }
 
   create() {
+    // Reset lives at the start of create
+    this.lives = GAME_CONFIG.PLAYER.MAX_LIVES;
+
     this.setupManagers();
     this.backgroundManager.setup();
     this.setupGround();
@@ -73,6 +81,81 @@ export class Game extends Scene {
     if (!this.textures.exists("plasma")) {
       this.createPlasmaBulletTexture();
     }
+
+    this.setupUI();
+  }
+
+  setupUI() {
+    this.hearts = [];
+    for (let i = 0; i < GAME_CONFIG.PLAYER.MAX_LIVES; i++) {
+      const x =
+        GAME_CONFIG.PLAYER.HEART_START_X + i * GAME_CONFIG.PLAYER.HEART_SPACING;
+      const y = GAME_CONFIG.PLAYER.HEART_START_Y;
+
+      const heart = this.add
+        .image(x, y, "heart")
+        .setScale(GAME_CONFIG.PLAYER.HEART_SCALE)
+        .setDepth(100)
+        .setScrollFactor(0);
+
+      this.hearts.push(heart);
+    }
+  }
+
+  updateLives() {
+    this.lives--;
+
+    // Update UI
+    for (let i = 0; i < this.hearts.length; i++) {
+      if (i >= this.lives) {
+        this.hearts[i].setTexture("emptyHeart");
+      }
+    }
+
+    // Camera shake for feedback
+    this.cameras.main.shake(200, 0.01);
+
+    if (this.lives <= 0) {
+      this.gameOver();
+    }
+    // If lives > 0, we do nothing; the LevelManager loop in planNextAction
+    // continues naturally because this.levelManager.isActive is still true.
+  }
+
+  gameOver() {
+    // Stop all game activity IMMEDIATELY
+    if (this.levelManager) {
+      this.levelManager.isActive = false; // Prevent any new spawns
+
+      // Clear all level manager timers
+      if (this.levelManager.spawnTimer) {
+        this.levelManager.spawnTimer.remove();
+        this.levelManager.spawnTimer = null;
+      }
+      if (this.levelManager.difficultyEvent) {
+        this.levelManager.difficultyEvent.remove();
+        this.levelManager.difficultyEvent = null;
+      }
+      if (this.levelManager.levelEndTimer) {
+        this.levelManager.levelEndTimer.remove();
+        this.levelManager.levelEndTimer = null;
+      }
+    }
+
+    // Clear ALL scene timers to prevent boss warning
+    this.time.removeAllEvents();
+
+    this.physics.pause();
+    this.player.setTint(0xff0000);
+
+    // Show game over screen with retry callback
+    this.gameOverManager.show(() => {
+      // When retry is clicked:
+      this.isTitleScreen = false;
+      this.registry.set("tutorialCompleted", true);
+      this.registry.set("skipDialogue", true); // Skip dialogue on retry
+      this.scene.restart();
+    });
   }
 
   setupManagers() {
@@ -80,6 +163,7 @@ export class Game extends Scene {
     this.backgroundManager = new BackgroundManager(this);
     this.dialogueManager = new DialogueManager(this);
     this.dialogueManager = new DialogueManager(this);
+    this.gameOverManager = new GameOverManager(this);
   }
 
   setupTitleScreen() {
@@ -150,12 +234,26 @@ export class Game extends Scene {
   }
 
   setupTutorial() {
-    this.tutorial = new TutorialManager(
-      this,
-      this.playerController,
-      this.inputHandler
-    );
-    this.time.delayedCall(500, () => this.tutorial.startTutorial());
+    // Only show tutorial if not completed before
+    if (!this.registry.get("tutorialCompleted")) {
+      this.tutorial = new TutorialManager(
+        this,
+        this.playerController,
+        this.inputHandler
+      );
+      this.time.delayedCall(500, () => this.tutorial.startTutorial());
+    } else {
+      // Skip tutorial and check if we should skip dialogue too
+      if (this.registry.get("skipDialogue")) {
+        this.registry.set("skipDialogue", false); // Reset flag
+        this.time.delayedCall(500, () => {
+          console.log("Skipping dialogue, starting level directly.");
+          this.levelManager.startLevel(60);
+        });
+      } else {
+        this.time.delayedCall(500, () => this.startIntroSequence());
+      }
+    }
   }
 
   startIntroSequence() {
