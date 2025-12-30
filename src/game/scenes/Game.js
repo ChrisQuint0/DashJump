@@ -81,8 +81,6 @@ export class Game extends Scene {
     if (!this.textures.exists("plasma")) {
       this.createPlasmaBulletTexture();
     }
-
-    this.setupUI();
   }
 
   setupUI() {
@@ -187,6 +185,7 @@ export class Game extends Scene {
     this.setupPlayer();
     this.setupParticles();
     this.setupInput();
+    this.setupUI();
 
     // Initialize LevelManager
     this.levelManager = new LevelManager(this, this.playerController);
