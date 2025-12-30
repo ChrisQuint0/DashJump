@@ -7,7 +7,7 @@ export class DialogueManager {
     this.isTyping = false;
     this.fullText = "";
 
-    this.lines = [
+    this.introLines = [
       "Ah, you've arrived. How... inevitable.",
       "You know what's funny about adversities?",
       "They only exist because you insist on moving forward.",
@@ -20,6 +20,8 @@ export class DialogueManager {
       "But you won't. You never do.",
     ];
 
+    this.lines = this.introLines;
+
     this.textStyle = {
       fontFamily: '"Press Start 2P"',
       fontSize: "26px",
@@ -28,6 +30,16 @@ export class DialogueManager {
       wordWrap: { width: 690 },
       lineSpacing: 10,
     };
+  }
+
+  setDialogue(newLines) {
+    this.lines = newLines;
+    this.dialogueIndex = 0;
+  }
+
+  showDialogue(newLines, onComplete) {
+    this.setDialogue(newLines);
+    this.showIntroduction(onComplete); // Re-uses your existing animation logic
   }
 
   showIntroduction(onComplete) {

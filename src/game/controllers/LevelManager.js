@@ -379,5 +379,56 @@ export class LevelManager {
         },
       });
     });
+
+    this.scene.time.delayedCall(2000, () => {
+      this.scene.tweens.add({
+        targets: this.boss,
+        y: -500,
+        duration: 2000,
+        onComplete: () => {
+          // TRIGGER DIALOGUE 2 INSTEAD OF LOGGING
+          this.triggerPostBossSequence();
+        },
+      });
+    });
+  }
+
+  triggerPostBossSequence() {
+    const postBossLines = [
+      "There you are, little dasher.",
+      "You jump. You dash. You avoid.",
+      "And then what? More jumping. More dashing.",
+      "It's beautiful, really. In its futility.",
+      "Sisyphus had his boulder.",
+      "You have your... adversities.",
+      "The universe throws things at you.",
+      "You dodge them.",
+      "Neither of you will ever stop.",
+      "Isn't that just delightful?",
+    ];
+
+    // 1. Pass the new lines to the DialogueManager
+    this.scene.dialogueManager.lines = postBossLines;
+    this.scene.dialogueManager.dialogueIndex = 0;
+
+    // 2. Show the dialogue
+    this.scene.dialogueManager.showIntroduction(() => {
+      // 3. Restore health after dialogue ends
+      this.restoreHealth();
+
+      // 4. Proceed to the next wave text and restart level logic
+      this.scene.displayWaveText(() => {
+        this.startLevel(60);
+      });
+    });
+  }
+
+  restoreHealth() {
+    // Restore lives to 2 if they are lower
+    if (this.scene.lives < 2) {
+      this.scene.lives = 2;
+      // Update heart textures in the UI
+      this.scene.hearts.forEach((heart) => heart.setTexture("heart"));
+    }
   }
 }

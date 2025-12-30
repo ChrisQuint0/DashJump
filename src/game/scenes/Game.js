@@ -283,7 +283,7 @@ export class Game extends Scene {
   }
 
   startIntroSequence() {
-    this.dialogueManager.showIntroduction(() => {
+    this.dialogueManager.showDialogue(this.dialogueManager.introLines, () => {
       this.displayWaveText(() => {
         this.levelManager.startLevel(60);
       });
