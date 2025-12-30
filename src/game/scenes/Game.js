@@ -247,7 +247,9 @@ export class Game extends Scene {
         this.registry.set("skipDialogue", false); // Reset flag
         this.time.delayedCall(500, () => {
           console.log("Skipping dialogue, starting level directly.");
-          this.levelManager.startLevel(60);
+          this.displayWaveText(() => {
+            this.levelManager.startLevel(60);
+          });
         });
       } else {
         this.time.delayedCall(500, () => this.startIntroSequence());
@@ -255,10 +257,36 @@ export class Game extends Scene {
     }
   }
 
+  displayWaveText(callback) {
+    const waveText = this.add
+      .text(540, 960, "FIRST WAVE", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "64px",
+        fill: "#1d2b53",
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setDepth(200);
+
+    this.tweens.add({
+      targets: waveText,
+      alpha: 1,
+      duration: 1000,
+      hold: 1000,
+      yoyo: true,
+      ease: "Linear",
+      onComplete: () => {
+        waveText.destroy();
+        if (callback) callback();
+      },
+    });
+  }
+
   startIntroSequence() {
     this.dialogueManager.showIntroduction(() => {
-      console.log("Dialogue complete! Start Level 1 logic here.");
-      this.levelManager.startLevel(60);
+      this.displayWaveText(() => {
+        this.levelManager.startLevel(60);
+      });
     });
   }
 
