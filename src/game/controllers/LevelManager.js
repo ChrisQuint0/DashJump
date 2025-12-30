@@ -267,6 +267,7 @@ export class LevelManager {
 
   handlePlayerHit() {
     this.scene.cameras.main.shake(200, 0.02);
+    this.handlePlayerHit();
   }
 
   stopLevel() {
@@ -363,7 +364,7 @@ export class LevelManager {
     this.scene.physics.moveTo(bullet, targetX, targetY, 1200);
 
     this.scene.physics.add.overlap(this.playerController.player, bullet, () => {
-      this.handlePlayerHit();
+      this.scene.updateLives();
       bullet.destroy();
       emitter.destroy();
     });
