@@ -417,7 +417,7 @@ export class LevelManager {
       this.restoreHealth();
 
       // 4. Proceed to the next wave text and restart level logic
-      this.scene.displayWaveText(() => {
+      this.scene.displayWaveText("SECOND WAVE", () => {
         this.startLevel(60);
       });
     });

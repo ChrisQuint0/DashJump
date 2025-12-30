@@ -247,8 +247,8 @@ export class Game extends Scene {
         this.registry.set("skipDialogue", false); // Reset flag
         this.time.delayedCall(500, () => {
           console.log("Skipping dialogue, starting level directly.");
-          this.displayWaveText(() => {
-            this.levelManager.startLevel(60);
+          this.scene.displayWaveText("FIRST WAVE", () => {
+            this.startLevel(60);
           });
         });
       } else {
@@ -257,9 +257,10 @@ export class Game extends Scene {
     }
   }
 
-  displayWaveText(callback) {
+  displayWaveText(message, callback) {
     const waveText = this.add
-      .text(540, 960, "FIRST WAVE", {
+      .text(540, 960, message, {
+        // Use the parameter here
         fontFamily: '"Press Start 2P"',
         fontSize: "64px",
         fill: "#1d2b53",
@@ -284,7 +285,7 @@ export class Game extends Scene {
 
   startIntroSequence() {
     this.dialogueManager.showDialogue(this.dialogueManager.introLines, () => {
-      this.displayWaveText(() => {
+      this.displayWaveText("FIRST WAVE", () => {
         this.levelManager.startLevel(60);
       });
     });
