@@ -8,16 +8,16 @@ export class DialogueManager {
     this.fullText = "";
 
     this.lines = [
-      "Hi! Christopher here.",
-      "This red guy here is supposed to be the villain of this mini game.",
-      "And he's supposed to say some villainous dialogue.",
-      "I was ready to write his lines.",
-      "Had Microsoft Word open and everything.",
-      "But I've just been staring at this blinking cursor.",
-      "And I can't think of anything to write.",
-      "So...",
-      "Just imagine he's saying something really evil and menacing.",
-      "Anyways, your health will be restored after every level.",
+      "Ah, you've arrived. How... inevitable.",
+      "You know what's funny about adversities?",
+      "They only exist because you insist on moving forward.",
+      "But here's the thing—",
+      "What if the adversities aren't the problem?",
+      "What if it's the dashing? The jumping?",
+      "This desperate need to keep going?",
+      "Have you considered just... stopping?",
+      "Standing still is a choice too, you know.",
+      "But you won't. You never do.",
     ];
 
     this.textStyle = {
