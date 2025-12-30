@@ -13,6 +13,12 @@ import { DialogueManager } from "../controllers/DialogueManager";
 import { LevelManager } from "../controllers/LevelManager";
 import { GameOverManager } from "../controllers/GameOverManager";
 
+// ===== DEVELOPMENT MODE =====
+// Set this to true to skip tutorial, dialogue, and wave 1
+const DEV_MODE = true;
+const DEV_START_WAVE = 2; // Which wave to start on
+// ============================
+
 export class Game extends Scene {
   constructor() {
     super("Game");
@@ -39,6 +45,8 @@ export class Game extends Scene {
     this.load.image("shootingBoss", "shootingBoss.png");
     this.load.image("heart", "heart.png");
     this.load.image("emptyHeart", "heartEmpty.png");
+    this.load.image("weave", "weave.png");
+    this.load.image("plasma", "plasma.png");
 
     this.loadFont();
     this.createSpeedLineTexture();
@@ -116,16 +124,13 @@ export class Game extends Scene {
     if (this.lives <= 0) {
       this.gameOver();
     }
-    // If lives > 0, we do nothing; the LevelManager loop in planNextAction
-    // continues naturally because this.levelManager.isActive is still true.
   }
 
   gameOver() {
     // Stop all game activity IMMEDIATELY
     if (this.levelManager) {
-      this.levelManager.isActive = false; // Prevent any new spawns
+      this.levelManager.isActive = false;
 
-      // Clear all level manager timers
       if (this.levelManager.spawnTimer) {
         this.levelManager.spawnTimer.remove();
         this.levelManager.spawnTimer = null;
@@ -140,18 +145,14 @@ export class Game extends Scene {
       }
     }
 
-    // Clear ALL scene timers to prevent boss warning
     this.time.removeAllEvents();
-
     this.physics.pause();
     this.player.setTint(0xff0000);
 
-    // Show game over screen with retry callback
     this.gameOverManager.show(() => {
-      // When retry is clicked:
       this.isTitleScreen = false;
       this.registry.set("tutorialCompleted", true);
-      this.registry.set("skipDialogue", true); // Skip dialogue on retry
+      this.registry.set("skipDialogue", true);
       this.scene.restart();
     });
   }
@@ -159,7 +160,6 @@ export class Game extends Scene {
   setupManagers() {
     this.transitionManager = new TransitionManager(this);
     this.backgroundManager = new BackgroundManager(this);
-    this.dialogueManager = new DialogueManager(this);
     this.dialogueManager = new DialogueManager(this);
     this.gameOverManager = new GameOverManager(this);
   }
@@ -169,7 +169,6 @@ export class Game extends Scene {
     this.titleScreenManager.setupUI();
     this.titleScreenManager.setupPlayer(this.ground);
 
-    // Set callback for play button
     this.onTitlePlayPressed = () => this.startGame();
   }
 
@@ -187,7 +186,6 @@ export class Game extends Scene {
     this.setupInput();
     this.setupUI();
 
-    // Initialize LevelManager
     this.levelManager = new LevelManager(this, this.playerController);
 
     this.setupTutorial();
@@ -233,6 +231,20 @@ export class Game extends Scene {
   }
 
   setupTutorial() {
+    // ===== DEV MODE SHORTCUT =====
+    if (DEV_MODE) {
+      console.log(`🔧 DEV MODE: Skipping to Wave ${DEV_START_WAVE}`);
+      this.registry.set("tutorialCompleted", true);
+      this.time.delayedCall(500, () => {
+        const waveName = DEV_START_WAVE === 1 ? "FIRST WAVE" : "SECOND WAVE";
+        this.displayWaveText(waveName, () => {
+          this.levelManager.startLevel(60, DEV_START_WAVE);
+        });
+      });
+      return;
+    }
+    // =============================
+
     // Only show tutorial if not completed before
     if (!this.registry.get("tutorialCompleted")) {
       this.tutorial = new TutorialManager(
@@ -244,11 +256,11 @@ export class Game extends Scene {
     } else {
       // Skip tutorial and check if we should skip dialogue too
       if (this.registry.get("skipDialogue")) {
-        this.registry.set("skipDialogue", false); // Reset flag
+        this.registry.set("skipDialogue", false);
         this.time.delayedCall(500, () => {
           console.log("Skipping dialogue, starting level directly.");
-          this.scene.displayWaveText("FIRST WAVE", () => {
-            this.startLevel(60);
+          this.displayWaveText("FIRST WAVE", () => {
+            this.levelManager.startLevel(60);
           });
         });
       } else {
@@ -260,7 +272,6 @@ export class Game extends Scene {
   displayWaveText(message, callback) {
     const waveText = this.add
       .text(540, 960, message, {
-        // Use the parameter here
         fontFamily: '"Press Start 2P"',
         fontSize: "64px",
         fill: "#1d2b53",
@@ -291,14 +302,12 @@ export class Game extends Scene {
     });
   }
 
-  // Add this to your Game.js (or inside ParticleEffects.js)
   createPlasmaBulletTexture() {
     const size = 32;
     const canvas = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
     const ctx = canvas.getContext("2d");
-    // Drawing a glowing radial gradient
     const gradient = ctx.createRadialGradient(
       size / 2,
       size / 2,
@@ -307,10 +316,10 @@ export class Game extends Scene {
       size / 2,
       size / 2
     );
-    gradient.addColorStop(0, "#ffffff"); // White core
-    gradient.addColorStop(0.3, "#00ff66"); // Bright green inner glow
-    gradient.addColorStop(0.7, "#00cc44"); // Deeper green mid
-    gradient.addColorStop(1, "transparent"); // Outer fade
+    gradient.addColorStop(0, "#ffffff");
+    gradient.addColorStop(0.3, "#00ff66");
+    gradient.addColorStop(0.7, "#00cc44");
+    gradient.addColorStop(1, "transparent");
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);

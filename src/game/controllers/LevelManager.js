@@ -2,6 +2,12 @@
 
 import { GAME_CONFIG } from "../config/GameConfig";
 
+// ===== DEVELOPMENT MODE =====
+// Set this to true to skip directly to Wave 2 for testing
+const DEV_MODE = true;
+const DEV_START_WAVE = 2; // Which wave to start on in dev mode
+// ============================
+
 export class LevelManager {
   constructor(scene, playerController) {
     this.scene = scene;
@@ -17,12 +23,21 @@ export class LevelManager {
     // Tracker for active obstacles to prevent "impossible" overlaps
     this.activeBall = null;
     this.activeSpike = null;
+    this.activeWeave = null;
     this.boss = null;
+
+    // Wave system
+    this.currentWave = 1;
+    this.isSpikeShowerMode = false;
+    this.weaveCount = 0; // Track how many weaves have been spawned
   }
 
-  startLevel(durationSeconds = 60) {
+  startLevel(durationSeconds = 60, waveNumber = 1) {
     this.isActive = true;
+    this.currentWave = waveNumber;
     this.difficultyMultiplier = 1;
+    this.isSpikeShowerMode = false;
+    this.weaveCount = 0; // Reset weave count for each level
 
     this.difficultyEvent = this.scene.time.addEvent({
       delay: 15000,
@@ -32,7 +47,7 @@ export class LevelManager {
       loop: true,
     });
 
-    // ADD THIS - Store the level end timer so we can clear it if needed
+    // Store the level end timer so we can clear it if needed
     this.levelEndTimer = this.scene.time.delayedCall(
       durationSeconds * 1000,
       () => this.stopLevel()
@@ -44,8 +59,19 @@ export class LevelManager {
   planNextAction() {
     if (!this.isActive) return;
 
+    // Route to wave-specific logic
+    if (this.currentWave === 1) {
+      this.planWave1Action();
+    } else if (this.currentWave === 2) {
+      this.planWave2Action();
+    }
+  }
+
+  // === WAVE 1 LOGIC (Original) ===
+  planWave1Action() {
+    if (!this.isActive) return;
+
     // RULE: If a spike is currently falling, wait 500ms and check again.
-    // This prevents a ball from spawning while the player is dodging a spike.
     if (this.activeSpike) {
       this.scene.time.delayedCall(500, () => this.planNextAction());
       return;
@@ -59,6 +85,193 @@ export class LevelManager {
     } else {
       this.spawnTargetedSpike();
     }
+  }
+
+  // === WAVE 2 LOGIC (New) ===
+  planWave2Action() {
+    if (!this.isActive || this.isSpikeShowerMode) return;
+
+    // RULE: If spike is falling, wait and check again
+    if (this.activeSpike) {
+      this.scene.time.delayedCall(500, () => this.planNextAction());
+      return;
+    }
+
+    // RULE: Cannot spawn spike or ball if weave is active (unless first 2 weaves)
+    if (this.activeWeave) {
+      // SPECIAL: First 2 weaves can have a targeted spike
+      if (this.weaveCount <= 2 && Math.random() < 0.5) {
+        this.spawnTargetedSpike();
+        return;
+      }
+      // Otherwise wait for weave to finish
+      this.scene.time.delayedCall(500, () => this.planNextAction());
+      return;
+    }
+
+    // RULE: Cannot spawn weave if ball or spike is active
+    // RULE: Only one weave at a time
+
+    // 30% chance to spawn weave (if conditions allow)
+    if (!this.activeWeave && !this.activeBall && Math.random() < 0.3) {
+      this.spawnWeave();
+      // Don't plan next action - weave exit handler will trigger mini shower
+      return;
+    }
+
+    // Standard spike/ball logic (same as wave 1)
+    const actionType = Math.random();
+    if (actionType < 0.4 && !this.activeBall && !this.activeWeave) {
+      this.triggerRandomScenario();
+    } else {
+      this.spawnTargetedSpike();
+    }
+  }
+
+  // === WEAVE ENTITY (Wave 2) ===
+  spawnWeave() {
+    // Safety check: don't spawn if anything else is active
+    if (this.activeWeave || this.activeBall || this.activeSpike) return;
+
+    this.weaveCount++; // Increment weave counter
+
+    // Spawn from top center of screen
+    const weave = this.scene.physics.add.sprite(540, -100, "weave");
+    weave.setScale(GAME_CONFIG.PLAYER.SCALE - 5);
+    weave.setDepth(5);
+    weave.body.setAllowGravity(false);
+
+    // Move DOWN the screen
+    weave.setVelocityY(400 * this.difficultyMultiplier);
+
+    this.activeWeave = weave;
+
+    // Sine wave HORIZONTAL weaving motion as it falls
+    const weaveMotion = this.scene.time.addEvent({
+      delay: 16, // ~60fps
+      callback: () => {
+        if (!weave.active) {
+          weaveMotion.remove();
+          return;
+        }
+        // Horizontal sine wave oscillation (left to right)
+        const offset = Math.sin(this.scene.time.now / 300) * 250;
+        weave.x = 540 + offset; // Weaves around center (540)
+      },
+      loop: true,
+    });
+
+    // Check for screen exit (bottom)
+    const exitCheck = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (weave.active && weave.y > 2000) {
+          weave.destroy();
+          this.activeWeave = null;
+          weaveMotion.remove();
+          exitCheck.remove();
+
+          // RULE: After weave exits, trigger mini spike shower
+          this.spawnMiniSpikeShower();
+        } else if (!weave.active) {
+          // Weave was destroyed (hit player) - clean up and continue
+          this.activeWeave = null;
+          weaveMotion.remove();
+          exitCheck.remove();
+
+          // Continue spawning after a short delay
+          this.scene.time.delayedCall(1000, () => this.planNextAction());
+        }
+      },
+      loop: true,
+    });
+
+    this.setupObstacleCollision(weave);
+  }
+
+  // === MINI SPIKE SHOWER (After Weave) ===
+  spawnMiniSpikeShower() {
+    // Alternating left-right-left pattern with gaps for dashing
+    const sequence = [
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 0 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 500 },
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 1000 },
+    ];
+
+    sequence.forEach((spike) => {
+      this.scene.time.delayedCall(spike.delay, () => {
+        if (this.isActive) this.spawnLaneSpike(spike.x);
+      });
+    });
+
+    // RULE: Spawn red ball 500ms after mini shower completes
+    this.scene.time.delayedCall(1500, () => {
+      this.spawnBall();
+    });
+
+    // Plan next action after ball spawns
+    this.scene.time.delayedCall(2000, () => this.planNextAction());
+  }
+
+  // === SPIKE SHOWER (Wave 2 Finale) ===
+  startSpikeShower() {
+    this.isSpikeShowerMode = true;
+
+    const sequence = [
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 0 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 500 },
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 1000 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 1500 },
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 2000 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 2500 },
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 3000 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 3500 },
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 4000 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 4500 },
+    ];
+
+    sequence.forEach((spike) => {
+      this.scene.time.delayedCall(spike.delay, () => {
+        if (this.isActive) this.spawnShowerSpike(spike.x);
+      });
+    });
+
+    // RULE: Spawn red ball 500ms after shower completes
+    this.scene.time.delayedCall(5500, () => {
+      if (this.isActive) this.spawnBall();
+    });
+
+    // End shower mode after ball spawns
+    this.scene.time.delayedCall(6000, () => {
+      this.isSpikeShowerMode = false;
+      if (this.isActive) {
+        console.log("Spike shower complete. Wave 2 cleared!");
+      }
+    });
+  }
+
+  spawnShowerSpike(x) {
+    const spike = this.scene.physics.add
+      .sprite(x, -100, "spike")
+      .setScale(GAME_CONFIG.PLAYER.SCALE - 10);
+    spike.body.setAllowGravity(false);
+
+    const trail = this.createSpikeTrail(spike);
+
+    this.scene.tweens.add({
+      targets: spike,
+      y: 150,
+      duration: 400,
+      onComplete: () => {
+        if (spike.active) {
+          spike.body.setAllowGravity(true);
+          spike.setGravityY(5000);
+          trail.start();
+        }
+      },
+    });
+
+    this.setupObstacleCollision(spike, trail);
   }
 
   // --- TARGETING LOGIC ---
@@ -146,12 +359,12 @@ export class LevelManager {
   // --- REFACTORED BALL SPAWN ---
   spawnBall() {
     // Strict Check: Don't spawn if a ball OR a falling spike already exists
-    if (this.activeBall || this.activeSpike) return;
+    if (this.activeBall || this.activeSpike || this.activeWeave) return;
 
     const playerX = this.playerController.player.x;
     const isPlayerOnRight = playerX > 540;
 
-    // Opposite Logic: If player is Right, spawn from Right moving Left (target is the other side)
+    // Opposite Logic: If player is Right, spawn from Right moving Left
     const spawnFromRight = !isPlayerOnRight;
 
     const spawnX = spawnFromRight ? 1200 : -120;
@@ -233,8 +446,9 @@ export class LevelManager {
   }
 
   setupObstacleCollision(sprite, trail = null) {
-    this.scene.physics.add.collider(sprite, this.scene.ground, () => {
-      if (sprite.texture.key === "spike") {
+    // Only add ground collision for spikes (not weave or ball)
+    if (sprite.texture.key === "spike") {
+      this.scene.physics.add.collider(sprite, this.scene.ground, () => {
         if (trail) trail.stop();
 
         // UNLOCK: When spike hits ground, allow new spawns
@@ -249,8 +463,8 @@ export class LevelManager {
           duration: 200,
           onComplete: () => sprite.destroy(),
         });
-      }
-    });
+      });
+    }
 
     this.scene.physics.add.overlap(sprite, this.playerController.player, () => {
       // 1. Destroy the object that hit the player so it doesn't hit twice
@@ -259,6 +473,7 @@ export class LevelManager {
       // 2. Clear tracking references so planNextAction() isn't blocked
       if (sprite === this.activeSpike) this.activeSpike = null;
       if (sprite === this.activeBall) this.activeBall = null;
+      if (sprite === this.activeWeave) this.activeWeave = null;
 
       // 3. Trigger the life reduction in Game.js
       this.scene.updateLives();
@@ -267,13 +482,13 @@ export class LevelManager {
 
   handlePlayerHit() {
     this.scene.cameras.main.shake(200, 0.02);
-    this.handlePlayerHit();
   }
 
   stopLevel() {
     this.isActive = false;
     this.activeBall = null;
     this.activeSpike = null;
+    this.activeWeave = null;
 
     // Clean up all timers
     if (this.spawnTimer) {
@@ -289,8 +504,16 @@ export class LevelManager {
       this.levelEndTimer = null;
     }
 
-    // REMOVED: this.scene.time.removeAllEvents(); (too aggressive)
+    // Wave-specific endings
+    if (this.currentWave === 1) {
+      this.endWave1();
+    } else if (this.currentWave === 2) {
+      this.endWave2();
+    }
+  }
 
+  // === WAVE 1 ENDING (Boss Fight) ===
+  endWave1() {
     const warningText = this.scene.add
       .text(540, 960, "You better move,\nhe's aiming.\nDon't get shot.", {
         fontFamily: '"Press Start 2P"',
@@ -315,6 +538,32 @@ export class LevelManager {
     });
   }
 
+  // === WAVE 2 ENDING (Spike Shower) ===
+  endWave2() {
+    const warningText = this.scene.add
+      .text(540, 960, "INCOMING!\nSWITCH LANES!", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "52px",
+        fill: "#ff004d",
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setDepth(100);
+
+    this.scene.tweens.add({
+      targets: warningText,
+      alpha: 1,
+      duration: 1000,
+      yoyo: true,
+      hold: 2000,
+      onComplete: () => {
+        warningText.destroy();
+        this.startSpikeShower();
+      },
+    });
+  }
+
   spawnBoss() {
     this.boss = this.scene.add.sprite(540, -300, "shootingBoss");
     this.boss.setScale(30);
@@ -332,7 +581,7 @@ export class LevelManager {
   bossAimingSequence() {
     this.scene.tweens.add({
       targets: this.boss,
-      tint: 0x00ff66, // Tint green to match your plasma
+      tint: 0x00ff66,
       duration: 500,
       yoyo: true,
       repeat: 9,
@@ -369,24 +618,13 @@ export class LevelManager {
       emitter.destroy();
     });
 
+    // Boss exits after shooting
     this.scene.time.delayedCall(2000, () => {
       this.scene.tweens.add({
         targets: this.boss,
         y: -500,
         duration: 2000,
         onComplete: () => {
-          console.log("Boss Defeated/Left. Level 1 Complete.");
-        },
-      });
-    });
-
-    this.scene.time.delayedCall(2000, () => {
-      this.scene.tweens.add({
-        targets: this.boss,
-        y: -500,
-        duration: 2000,
-        onComplete: () => {
-          // TRIGGER DIALOGUE 2 INSTEAD OF LOGGING
           this.triggerPostBossSequence();
         },
       });
@@ -407,27 +645,20 @@ export class LevelManager {
       "Isn't that just delightful?",
     ];
 
-    // 1. Pass the new lines to the DialogueManager
     this.scene.dialogueManager.lines = postBossLines;
     this.scene.dialogueManager.dialogueIndex = 0;
 
-    // 2. Show the dialogue
     this.scene.dialogueManager.showIntroduction(() => {
-      // 3. Restore health after dialogue ends
       this.restoreHealth();
-
-      // 4. Proceed to the next wave text and restart level logic
       this.scene.displayWaveText("SECOND WAVE", () => {
-        this.startLevel(60);
+        this.startLevel(60, 2); // Start Wave 2!
       });
     });
   }
 
   restoreHealth() {
-    // Restore lives to 2 if they are lower
     if (this.scene.lives < 2) {
       this.scene.lives = 2;
-      // Update heart textures in the UI
       this.scene.hearts.forEach((heart) => heart.setTexture("heart"));
     }
   }
