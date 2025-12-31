@@ -650,8 +650,7 @@ export class LevelManager {
           y: -500,
           duration: 2000,
           onComplete: () => {
-            console.log("Wave 2 boss defeated! Game complete!");
-            // TODO: Add game completion sequence here
+            this.triggerPreWave3Sequence();
           },
         });
       });
@@ -778,6 +777,33 @@ export class LevelManager {
       this.restoreHealth();
       this.scene.displayWaveText("SECOND WAVE", () => {
         this.startLevel(60, 2); // Start Wave 2!
+      });
+    });
+  }
+
+  triggerPreWave3Sequence() {
+    const preWave3Lines = [
+      "Here we are again.",
+      "You think you're choosing to jump, to dash.",
+      "But are you really choosing?",
+      "Or are you simply reacting?",
+      "A puppet to your own reflexes.",
+      "The adversities appear. You move. Cause and effect.",
+      "Free will is such a charming illusion.",
+      "Every jump was predetermined before you even started.",
+      "You're not playing the game.",
+      "The game is playing you.",
+    ];
+
+    this.scene.dialogueManager.lines = preWave3Lines;
+    this.scene.dialogueManager.dialogueIndex = 0;
+
+    this.scene.dialogueManager.showIntroduction(() => {
+      this.restoreHealth();
+      this.scene.displayWaveText("THIRD WAVE", () => {
+        console.log("Wave 3 would start here!");
+        // TODO: Implement Wave 3
+        // this.startLevel(60, 3);
       });
     });
   }
