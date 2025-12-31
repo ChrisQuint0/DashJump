@@ -247,15 +247,15 @@ export class LevelManager {
       });
     });
 
-    // RULE: Spawn red ball 500ms after shower completes
-    // Last spike spawns at 4500ms, so ball spawns at 5000ms
-    this.scene.time.delayedCall(5000, () => {
+    // RULE: Spawn red ball 500ms after the LAST spike completes its full animation
+    // Last spike spawns at 4500ms, takes ~1500ms to hit ground, so ball spawns at 6000ms
+    this.scene.time.delayedCall(6000, () => {
       console.log("Spike shower complete - spawning ball");
       this.spawnBall();
     });
 
     // Show completion message and end shower mode
-    this.scene.time.delayedCall(5500, () => {
+    this.scene.time.delayedCall(6500, () => {
       this.isSpikeShowerMode = false;
       console.log("Wave 2 cleared!");
     });
@@ -561,7 +561,7 @@ export class LevelManager {
     });
   }
 
-  // === WAVE 2 ENDING (Spike Shower) ===
+  // === WAVE 2 ENDING (Spike Shower + Boss) ===
   endWave2() {
     // First execute the spike shower
     this.startSpikeShower();
@@ -570,9 +570,9 @@ export class LevelManager {
     // Shower takes 5 seconds, so show text after 5.5 seconds
     this.scene.time.delayedCall(5500, () => {
       const warningText = this.scene.add
-        .text(540, 960, "INCOMING!\nSWITCH LANES!", {
+        .text(540, 960, "He's back...\nAnd he's not\nmissing around.", {
           fontFamily: '"Press Start 2P"',
-          fontSize: "52px",
+          fontSize: "45px",
           fill: "#ff004d",
           align: "center",
         })
@@ -588,9 +588,105 @@ export class LevelManager {
         hold: 2000,
         onComplete: () => {
           warningText.destroy();
-          console.log("Wave 2 complete!");
+          this.spawnWave2Boss();
         },
       });
+    });
+  }
+
+  spawnWave2Boss() {
+    this.boss = this.scene.add.sprite(540, -300, "shootingBoss");
+    this.boss.setScale(30);
+    this.boss.setDepth(10);
+
+    this.scene.tweens.add({
+      targets: this.boss,
+      y: 400,
+      duration: 2500,
+      ease: "Back.easeOut",
+      onComplete: () => this.bossWave2AimingSequence(),
+    });
+  }
+
+  bossWave2AimingSequence() {
+    // Aim sequence - green tint flashing
+    this.scene.tweens.add({
+      targets: this.boss,
+      tint: 0x00ff66,
+      duration: 500,
+      yoyo: true,
+      repeat: 9,
+      onComplete: () => this.fireBossWave2Shots(),
+    });
+  }
+
+  fireBossWave2Shots() {
+    // Shot 1 - immediately after aiming
+    this.fireBossShotWave2(0);
+
+    // Shot 2 - 1500ms delay
+    this.scene.time.delayedCall(1500, () => {
+      this.fireBossShotWave2(1);
+    });
+
+    // Shot 3 - 1500ms after shot 2 (3000ms total)
+    this.scene.time.delayedCall(3000, () => {
+      this.fireBossShotWave2(2);
+    });
+
+    // Shot 4 - 1500ms after shot 3 (4500ms total)
+    this.scene.time.delayedCall(4500, () => {
+      this.fireBossShotWave2(3);
+    });
+
+    // Shot 5 - 5000ms after shot 4 (9500ms total)
+    this.scene.time.delayedCall(9500, () => {
+      this.fireBossShotWave2(4);
+
+      // Boss exits after final shot
+      this.scene.time.delayedCall(2000, () => {
+        this.scene.tweens.add({
+          targets: this.boss,
+          y: -500,
+          duration: 2000,
+          onComplete: () => {
+            console.log("Wave 2 boss defeated! Game complete!");
+            // TODO: Add game completion sequence here
+          },
+        });
+      });
+    });
+  }
+
+  fireBossShotWave2(shotNumber) {
+    console.log(`Boss firing shot ${shotNumber + 1}/5`);
+
+    const targetX = this.playerController.player.x;
+    const targetY = this.playerController.player.y;
+
+    const bullet = this.scene.physics.add.sprite(
+      this.boss.x,
+      this.boss.y,
+      "plasma"
+    );
+    bullet.setScale(4);
+    bullet.body.setAllowGravity(false);
+
+    const emitter = this.scene.add.particles(0, 0, "plasma", {
+      speed: 20,
+      scale: { start: 0.8, end: 0 },
+      alpha: { start: 0.5, end: 0 },
+      lifespan: 500,
+      follow: bullet,
+      blendMode: "ADD",
+    });
+
+    this.scene.physics.moveTo(bullet, targetX, targetY, 1200);
+
+    this.scene.physics.add.overlap(this.playerController.player, bullet, () => {
+      this.scene.updateLives();
+      bullet.destroy();
+      emitter.destroy();
     });
   }
 
