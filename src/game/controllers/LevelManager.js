@@ -205,8 +205,12 @@ export class LevelManager {
     });
 
     // RULE: Spawn red ball 500ms after mini shower completes
+    // Last spike spawns at 1000ms, so ball spawns at 1500ms
     this.scene.time.delayedCall(1500, () => {
-      this.spawnBall();
+      if (this.isActive) {
+        console.log("Mini shower complete - spawning ball");
+        this.spawnBall();
+      }
     });
 
     // Plan next action after ball spawns
@@ -215,8 +219,12 @@ export class LevelManager {
 
   // === SPIKE SHOWER (Wave 2 Finale) ===
   startSpikeShower() {
+    console.log("Starting spike shower!");
     this.isSpikeShowerMode = true;
+    // CRITICAL: Keep isActive true during shower
+    // Don't set isActive to false until shower completes
 
+    // 5-second shower with spikes every 500ms = 10 spikes
     const sequence = [
       { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 0 },
       { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 500 },
@@ -232,21 +240,24 @@ export class LevelManager {
 
     sequence.forEach((spike) => {
       this.scene.time.delayedCall(spike.delay, () => {
-        if (this.isActive) this.spawnShowerSpike(spike.x);
+        console.log(
+          `Spawning shower spike at ${spike.x}, isActive: ${this.isActive}`
+        );
+        this.spawnShowerSpike(spike.x);
       });
     });
 
     // RULE: Spawn red ball 500ms after shower completes
-    this.scene.time.delayedCall(5500, () => {
-      if (this.isActive) this.spawnBall();
+    // Last spike spawns at 4500ms, so ball spawns at 5000ms
+    this.scene.time.delayedCall(5000, () => {
+      console.log("Spike shower complete - spawning ball");
+      this.spawnBall();
     });
 
-    // End shower mode after ball spawns
-    this.scene.time.delayedCall(6000, () => {
+    // Show completion message and end shower mode
+    this.scene.time.delayedCall(5500, () => {
       this.isSpikeShowerMode = false;
-      if (this.isActive) {
-        console.log("Spike shower complete. Wave 2 cleared!");
-      }
+      console.log("Wave 2 cleared!");
     });
   }
 
@@ -359,8 +370,16 @@ export class LevelManager {
   // --- REFACTORED BALL SPAWN ---
   spawnBall() {
     // Strict Check: Don't spawn if a ball OR a falling spike already exists
-    if (this.activeBall || this.activeSpike || this.activeWeave) return;
+    if (this.activeBall || this.activeSpike || this.activeWeave) {
+      console.log("Ball spawn blocked - obstacles active:", {
+        ball: !!this.activeBall,
+        spike: !!this.activeSpike,
+        weave: !!this.activeWeave,
+      });
+      return;
+    }
 
+    console.log("Spawning ball");
     const playerX = this.playerController.player.x;
     const isPlayerOnRight = playerX > 540;
 
@@ -485,12 +504,7 @@ export class LevelManager {
   }
 
   stopLevel() {
-    this.isActive = false;
-    this.activeBall = null;
-    this.activeSpike = null;
-    this.activeWeave = null;
-
-    // Clean up all timers
+    // Clean up all timers FIRST before calling wave endings
     if (this.spawnTimer) {
       this.spawnTimer.remove();
       this.spawnTimer = null;
@@ -504,12 +518,21 @@ export class LevelManager {
       this.levelEndTimer = null;
     }
 
-    // Wave-specific endings
+    // Wave-specific endings (these may spawn new timers)
     if (this.currentWave === 1) {
       this.endWave1();
     } else if (this.currentWave === 2) {
       this.endWave2();
     }
+
+    // IMPORTANT: Only set isActive to false AFTER wave endings
+    // This allows spike showers and other finale events to execute
+    this.scene.time.delayedCall(7000, () => {
+      this.isActive = false;
+      this.activeBall = null;
+      this.activeSpike = null;
+      this.activeWeave = null;
+    });
   }
 
   // === WAVE 1 ENDING (Boss Fight) ===
@@ -540,27 +563,34 @@ export class LevelManager {
 
   // === WAVE 2 ENDING (Spike Shower) ===
   endWave2() {
-    const warningText = this.scene.add
-      .text(540, 960, "INCOMING!\nSWITCH LANES!", {
-        fontFamily: '"Press Start 2P"',
-        fontSize: "52px",
-        fill: "#ff004d",
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setAlpha(0)
-      .setDepth(100);
+    // First execute the spike shower
+    this.startSpikeShower();
 
-    this.scene.tweens.add({
-      targets: warningText,
-      alpha: 1,
-      duration: 1000,
-      yoyo: true,
-      hold: 2000,
-      onComplete: () => {
-        warningText.destroy();
-        this.startSpikeShower();
-      },
+    // Then show the warning text AFTER the shower completes
+    // Shower takes 5 seconds, so show text after 5.5 seconds
+    this.scene.time.delayedCall(5500, () => {
+      const warningText = this.scene.add
+        .text(540, 960, "INCOMING!\nSWITCH LANES!", {
+          fontFamily: '"Press Start 2P"',
+          fontSize: "52px",
+          fill: "#ff004d",
+          align: "center",
+        })
+        .setOrigin(0.5)
+        .setAlpha(0)
+        .setDepth(100);
+
+      this.scene.tweens.add({
+        targets: warningText,
+        alpha: 1,
+        duration: 1000,
+        yoyo: true,
+        hold: 2000,
+        onComplete: () => {
+          warningText.destroy();
+          console.log("Wave 2 complete!");
+        },
+      });
     });
   }
 
