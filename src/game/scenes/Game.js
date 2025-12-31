@@ -16,7 +16,7 @@ import { GameOverManager } from "../controllers/GameOverManager";
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip tutorial, dialogue, and wave 1
 const DEV_MODE = true;
-const DEV_START_WAVE = 2; // Which wave to start on
+const DEV_START_WAVE = 3; // Which wave to start on
 // ============================
 
 export class Game extends Scene {
@@ -236,7 +236,17 @@ export class Game extends Scene {
       console.log(`🔧 DEV MODE: Skipping to Wave ${DEV_START_WAVE}`);
       this.registry.set("tutorialCompleted", true);
       this.time.delayedCall(500, () => {
-        const waveName = DEV_START_WAVE === 1 ? "FIRST WAVE" : "SECOND WAVE";
+        // const waveName = DEV_START_WAVE === 1 ? "FIRST WAVE" : "SECOND WAVE";
+
+        let waveName = " ";
+        if (DEV_START_WAVE === 1) {
+          waveName = "FIRST WAVE";
+        } else if (DEV_START_WAVE === 2) {
+          waveName = "SECOND WAVE";
+        } else if (DEV_START_WAVE === 3) {
+          waveName = "THIRD WAVE";
+        }
+
         this.displayWaveText(waveName, () => {
           this.levelManager.startLevel(60, DEV_START_WAVE);
         });

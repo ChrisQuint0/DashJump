@@ -5,7 +5,7 @@ import { GAME_CONFIG } from "../config/GameConfig";
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip directly to Wave 2 for testing
 const DEV_MODE = true;
-const DEV_START_WAVE = 2; // Which wave to start on in dev mode
+const DEV_START_WAVE = 3; // Which wave to start on in dev mode
 // ============================
 
 export class LevelManager {
@@ -39,6 +39,12 @@ export class LevelManager {
     this.isSpikeShowerMode = false;
     this.weaveCount = 0; // Reset weave count for each level
 
+    // Wave 3 uses a scripted sequence instead of procedural generation
+    if (waveNumber === 3) {
+      this.startWave3Sequence();
+      return;
+    }
+
     this.difficultyEvent = this.scene.time.addEvent({
       delay: 15000,
       callback: () => {
@@ -64,6 +70,9 @@ export class LevelManager {
       this.planWave1Action();
     } else if (this.currentWave === 2) {
       this.planWave2Action();
+    } else if (this.currentWave === 3) {
+      // Wave 3 uses scripted sequence, no planning needed
+      return;
     }
   }
 
@@ -801,10 +810,191 @@ export class LevelManager {
     this.scene.dialogueManager.showIntroduction(() => {
       this.restoreHealth();
       this.scene.displayWaveText("THIRD WAVE", () => {
-        console.log("Wave 3 would start here!");
-        // TODO: Implement Wave 3
-        // this.startLevel(60, 3);
+        this.startLevel(120, 3); // Start Wave 3 - 2 minutes!
       });
+    });
+  }
+
+  // === WAVE 3 SCRIPTED SEQUENCE ===
+  startWave3Sequence() {
+    console.log("Starting Wave 3 scripted sequence");
+    let currentTime = 0;
+
+    // Helper function to schedule events
+    const scheduleEvent = (callback, delay) => {
+      this.scene.time.delayedCall(currentTime + delay, callback);
+      currentTime += delay;
+      return currentTime;
+    };
+
+    // Drop a single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000); // Wait for spike to clear
+
+    // Drop another single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spike shower for 5 seconds
+    scheduleEvent(() => this.startSpikeShower(), 0);
+    scheduleEvent(() => {}, 7000); // Wait for shower + ball
+
+    // Drop a single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Drop another single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spike shower for 5 seconds
+    scheduleEvent(() => this.startSpikeShower(), 0);
+    scheduleEvent(() => {}, 7000);
+
+    // Drop a single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spawn a red ball
+    scheduleEvent(() => this.spawnBall(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Drop a single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spawn a red ball
+    scheduleEvent(() => this.spawnBall(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spawn a red ball
+    scheduleEvent(() => this.spawnBall(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Boss fires 10 continuous shots to the LEFT
+    scheduleEvent(() => this.bossFiresToLane(GAME_CONFIG.PLAYER.LEFT_X, 10), 0);
+    scheduleEvent(() => {}, 16000); // 10 shots * 1500ms + buffer
+
+    // Spawn a single spike
+    scheduleEvent(() => this.spawnTargetedSpike(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spawn a red ball
+    scheduleEvent(() => this.spawnBall(), 0);
+    scheduleEvent(() => {}, 2000);
+
+    // Spike shower
+    scheduleEvent(() => this.startSpikeShower(), 0);
+    scheduleEvent(() => {}, 7000);
+
+    // Boss fires 10 continuous shots to the RIGHT
+    scheduleEvent(
+      () => this.bossFiresToLane(GAME_CONFIG.PLAYER.RIGHT_X, 10),
+      0
+    );
+    scheduleEvent(() => {}, 16000);
+
+    // Fill remaining time with spike showers and varied patterns
+    const timeRemaining = 120000 - currentTime; // 2 minutes total
+    console.log(
+      `Time remaining to fill: ${timeRemaining}ms, current: ${currentTime}ms`
+    );
+
+    // Pattern: spike shower, ball, spike, ball, spike shower
+    const fillPattern = () => {
+      scheduleEvent(() => this.startSpikeShower(), 0);
+      scheduleEvent(() => {}, 7000);
+
+      scheduleEvent(() => this.spawnBall(), 0);
+      scheduleEvent(() => {}, 2000);
+
+      scheduleEvent(() => this.spawnTargetedSpike(), 0);
+      scheduleEvent(() => {}, 2000);
+
+      scheduleEvent(() => this.spawnBall(), 0);
+      scheduleEvent(() => {}, 2000);
+    };
+
+    // Keep adding patterns until we're close to 2 minutes
+    while (currentTime < 115000) {
+      // Stop at 115s to leave time for ending
+      fillPattern();
+    }
+
+    console.log(`Final sequence time: ${currentTime}ms`);
+
+    // End Wave 3 and trigger final boss at exactly 2 minutes
+    this.scene.time.delayedCall(120000, () => {
+      console.log("Wave 3 time complete, triggering boss");
+      this.stopLevel();
+    });
+  }
+
+  // Boss fires continuous shots to a specific lane
+  bossFiresToLane(targetX, shotCount) {
+    console.log(`Boss firing ${shotCount} shots to lane ${targetX}`);
+
+    // Spawn boss
+    this.boss = this.scene.add.sprite(540, -300, "shootingBoss");
+    this.boss.setScale(30);
+    this.boss.setDepth(10);
+
+    this.scene.tweens.add({
+      targets: this.boss,
+      y: 400,
+      duration: 2500,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        // Fire continuous shots
+        for (let i = 0; i < shotCount; i++) {
+          this.scene.time.delayedCall(i * 1500, () => {
+            this.fireBossShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
+
+            // Spawn red balls during shooting (every 3rd shot)
+            if (i % 3 === 0 && i > 0) {
+              this.scene.time.delayedCall(500, () => this.spawnBall());
+            }
+          });
+        }
+
+        // Boss exits after all shots
+        this.scene.time.delayedCall(shotCount * 1500 + 2000, () => {
+          this.scene.tweens.add({
+            targets: this.boss,
+            y: -500,
+            duration: 2000,
+          });
+        });
+      },
+    });
+  }
+
+  fireBossShotToPosition(targetX, targetY) {
+    if (!this.boss) return;
+
+    const bullet = this.scene.physics.add.sprite(
+      this.boss.x,
+      this.boss.y,
+      "plasma"
+    );
+    bullet.setScale(4);
+    bullet.body.setAllowGravity(false);
+
+    const emitter = this.scene.add.particles(0, 0, "plasma", {
+      speed: 20,
+      scale: { start: 0.8, end: 0 },
+      alpha: { start: 0.5, end: 0 },
+      lifespan: 500,
+      follow: bullet,
+      blendMode: "ADD",
+    });
+
+    this.scene.physics.moveTo(bullet, targetX, targetY, 1200);
+
+    this.scene.physics.add.overlap(this.playerController.player, bullet, () => {
+      this.scene.updateLives();
+      bullet.destroy();
+      emitter.destroy();
     });
   }
 
@@ -812,6 +1002,125 @@ export class LevelManager {
     if (this.scene.lives < 2) {
       this.scene.lives = 2;
       this.scene.hearts.forEach((heart) => heart.setTexture("heart"));
+    }
+  }
+
+  // === WAVE 3 ENDING (Final Boss) ===
+  endWave3() {
+    // Spike shower before final boss
+    this.startSpikeShower();
+
+    this.scene.time.delayedCall(7000, () => {
+      const warningText = this.scene.add
+        .text(540, 960, "Final Stand.\nSurvive.", {
+          fontFamily: '"Press Start 2P"',
+          fontSize: "52px",
+          fill: "#ff004d",
+          align: "center",
+        })
+        .setOrigin(0.5)
+        .setAlpha(0)
+        .setDepth(100);
+
+      this.scene.tweens.add({
+        targets: warningText,
+        alpha: 1,
+        duration: 1000,
+        yoyo: true,
+        hold: 2000,
+        onComplete: () => {
+          warningText.destroy();
+          this.spawnWave3FinalBoss();
+        },
+      });
+    });
+  }
+
+  spawnWave3FinalBoss() {
+    this.boss = this.scene.add.sprite(540, -300, "shootingBoss");
+    this.boss.setScale(30);
+    this.boss.setDepth(10);
+
+    this.scene.tweens.add({
+      targets: this.boss,
+      y: 400,
+      duration: 2500,
+      ease: "Back.easeOut",
+      onComplete: () => this.finalBossSequence(),
+    });
+  }
+
+  finalBossSequence() {
+    let currentTime = 0;
+
+    // 10 continuous shots (targeted at player)
+    for (let i = 0; i < 10; i++) {
+      this.scene.time.delayedCall(currentTime, () => {
+        this.fireBossShotWave2(i);
+      });
+      currentTime += 1500;
+    }
+
+    // Spike shower
+    this.scene.time.delayedCall(currentTime, () => {
+      this.startSpikeShower();
+    });
+    currentTime += 7000;
+
+    // 10 continuous shots again
+    for (let i = 0; i < 10; i++) {
+      this.scene.time.delayedCall(currentTime, () => {
+        this.fireBossShotWave2(i + 10);
+      });
+      currentTime += 1500;
+    }
+
+    // Spike shower
+    this.scene.time.delayedCall(currentTime, () => {
+      this.startSpikeShower();
+    });
+    currentTime += 7000;
+
+    // Boss fires to LEFT lane with red balls
+    this.scene.time.delayedCall(currentTime, () => {
+      this.bossFiresToLaneInPlace(GAME_CONFIG.PLAYER.LEFT_X, 10);
+    });
+    currentTime += 16000;
+
+    // Boss fires to RIGHT lane with red balls
+    this.scene.time.delayedCall(currentTime, () => {
+      this.bossFiresToLaneInPlace(GAME_CONFIG.PLAYER.RIGHT_X, 10);
+    });
+    currentTime += 16000;
+
+    // Boss defeated - exit
+    this.scene.time.delayedCall(currentTime, () => {
+      this.scene.tweens.add({
+        targets: this.boss,
+        y: -500,
+        duration: 2000,
+        onComplete: () => {
+          console.log("Wave 3 complete! Game finished!");
+          // TODO: Add game completion sequence
+        },
+      });
+    });
+  }
+
+  // Boss fires to lane without respawning (for final boss sequence)
+  bossFiresToLaneInPlace(targetX, shotCount) {
+    console.log(`Boss firing ${shotCount} shots to lane ${targetX}`);
+
+    // Fire continuous shots
+    for (let i = 0; i < shotCount; i++) {
+      this.scene.time.delayedCall(i * 1500, () => {
+        this.fireBossShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
+
+        // Spawn red balls during shooting (every 3rd shot)
+        if (i % 3 === 0 && i > 0) {
+          this.scene.time.delayedCall(500, () => this.spawnBall());
+        }
+      });
     }
   }
 }
