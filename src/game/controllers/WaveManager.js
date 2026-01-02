@@ -12,11 +12,13 @@ export class WaveManager {
     this.isSpikeShowerMode = false;
     this.weaveCount = 0;
     this.lastScenarioIndex = -1;
+    this.isBossActive = false; // Add flag to track boss state
   }
 
   startWave(durationSeconds, waveNumber) {
     this.isSpikeShowerMode = false;
     this.weaveCount = 0;
+    this.isBossActive = false; // Reset boss flag at wave start
 
     if (waveNumber === 3) {
       this.startWave3Sequence();
@@ -27,7 +29,7 @@ export class WaveManager {
   }
 
   planNextAction(waveNumber) {
-    if (!this.levelManager.isActive) return;
+    if (!this.levelManager.isActive || this.isBossActive) return; // Check boss flag
 
     if (waveNumber === 1) {
       this.planWave1Action();
@@ -39,7 +41,7 @@ export class WaveManager {
   // === WAVE 1 LOGIC ===
 
   planWave1Action() {
-    if (!this.levelManager.isActive) return;
+    if (!this.levelManager.isActive || this.isBossActive) return; // Check boss flag
 
     if (this.obstacleSpawner.activeSpike) {
       this.scene.time.delayedCall(500, () =>
@@ -66,7 +68,12 @@ export class WaveManager {
   // === WAVE 2 LOGIC ===
 
   planWave2Action() {
-    if (!this.levelManager.isActive || this.isSpikeShowerMode) return;
+    if (
+      !this.levelManager.isActive ||
+      this.isSpikeShowerMode ||
+      this.isBossActive
+    )
+      return; // Check boss flag
 
     if (this.obstacleSpawner.activeSpike) {
       this.scene.time.delayedCall(500, () =>
@@ -75,11 +82,8 @@ export class WaveManager {
       return;
     }
 
+    // If weave is active, don't spawn anything - just wait
     if (this.obstacleSpawner.activeWeave) {
-      if (this.weaveCount <= 2 && Math.random() < 0.5) {
-        this.obstacleSpawner.spawnTargetedSpike();
-        return;
-      }
       this.scene.time.delayedCall(500, () =>
         this.planNextAction(this.levelManager.currentWave)
       );
@@ -402,6 +406,8 @@ export class WaveManager {
   }
 
   endWave1() {
+    this.isBossActive = true; // Set boss flag to stop obstacle spawning
+
     const warningText = this.scene.add
       .text(540, 960, "You better move,\nhe's aiming.\nDon't get shot.", {
         fontFamily: '"Press Start 2P"',
@@ -422,6 +428,7 @@ export class WaveManager {
       onComplete: () => {
         warningText.destroy();
         this.levelManager.bossManager.spawnWave1Boss(() => {
+          this.isBossActive = false; // Reset boss flag after boss is done
           this.triggerPostBossSequence();
         });
       },
@@ -429,6 +436,7 @@ export class WaveManager {
   }
 
   endWave2() {
+    this.isBossActive = true; // Set boss flag to stop obstacle spawning
     this.startSpikeShower();
 
     this.scene.time.delayedCall(5500, () => {
@@ -452,6 +460,7 @@ export class WaveManager {
         onComplete: () => {
           warningText.destroy();
           this.levelManager.bossManager.spawnWave2Boss(() => {
+            this.isBossActive = false; // Reset boss flag after boss is done
             this.triggerPreWave3Sequence();
           });
         },
@@ -460,6 +469,7 @@ export class WaveManager {
   }
 
   endWave3() {
+    this.isBossActive = true; // Set boss flag (though Wave 3 is scripted)
     this.startSpikeShower();
 
     this.scene.time.delayedCall(7000, () => {

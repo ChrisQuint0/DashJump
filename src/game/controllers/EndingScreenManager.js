@@ -103,7 +103,7 @@ export class EndingScreenManager {
         .text(540, creditsY + index * creditsSpacing, credit.text, {
           fontFamily: '"Press Start 2P"',
           fontSize: "24px",
-          fill: "#7e2553",
+          fill: "#ffffff",
           align: "center",
         })
         .setOrigin(0.5)

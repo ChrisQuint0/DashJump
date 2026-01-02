@@ -16,7 +16,7 @@ import { EndingScreenManager } from "../controllers/EndingScreenManager";
 
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip tutorial, dialogue, and wave 1
-const DEV_MODE = false;
+const DEV_MODE = true;
 const DEV_START_WAVE = 3; // Which wave to start on
 // ============================
 
