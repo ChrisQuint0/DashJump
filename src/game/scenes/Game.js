@@ -12,10 +12,11 @@ import { TransitionManager } from "../controllers/TransitionManager";
 import { DialogueManager } from "../controllers/DialogueManager";
 import { LevelManager } from "../controllers/LevelManager";
 import { GameOverManager } from "../controllers/GameOverManager";
+import { EndingScreenManager } from "../controllers/EndingScreenManager";
 
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip tutorial, dialogue, and wave 1
-const DEV_MODE = true;
+const DEV_MODE = false;
 const DEV_START_WAVE = 3; // Which wave to start on
 // ============================
 
@@ -47,6 +48,10 @@ export class Game extends Scene {
     this.load.image("emptyHeart", "heartEmpty.png");
     this.load.image("weave", "weave.png");
     this.load.image("plasma", "plasma.png");
+
+    this.load.image("puppyOne", "puppyOne.png");
+    this.load.image("puppyTwo", "puppyTwo.png");
+    this.load.image("puppyThree", "puppyThree.png");
 
     this.loadFont();
     this.createSpeedLineTexture();
@@ -162,6 +167,7 @@ export class Game extends Scene {
     this.backgroundManager = new BackgroundManager(this);
     this.dialogueManager = new DialogueManager(this);
     this.gameOverManager = new GameOverManager(this);
+    this.endingScreenManager = new EndingScreenManager(this);
   }
 
   setupTitleScreen() {

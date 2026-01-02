@@ -515,8 +515,9 @@ export class WaveManager {
     this.scene.dialogueManager.dialogueIndex = 0;
 
     this.scene.dialogueManager.showIntroduction(() => {
-      console.log("Game complete! Ending dialogue finished.");
-      // Could add credits, return to title, etc. here
+      console.log("Game complete! Showing ending screen...");
+      // Show the thank you / credits screen
+      this.scene.endingScreenManager.show();
     });
   }
 

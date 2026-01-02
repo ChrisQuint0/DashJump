@@ -26,6 +26,7 @@ export class TitleScreenManager {
     });
 
     this.createPlayButton();
+    this.createCreditsText();
   }
 
   createPlayButton() {
@@ -58,6 +59,28 @@ export class TitleScreenManager {
       playText.y = btnY;
       this.onPlayButtonPressed();
     });
+  }
+
+  createCreditsText() {
+    // Left credit: By Christopher Quinto
+    this.scene.add
+      .text(40, 1880, "By Christopher Quinto", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "22px",
+        fill: "#ffffff",
+      })
+      .setOrigin(0, 1)
+      .setDepth(10);
+
+    // Right credit: Game Assets by Kenney
+    this.scene.add
+      .text(1040, 1880, "Game Assets by Kenney", {
+        fontFamily: '"Press Start 2P"',
+        fontSize: "22px",
+        fill: "#ffffff",
+      })
+      .setOrigin(1, 1)
+      .setDepth(10);
   }
 
   onPlayButtonPressed() {
