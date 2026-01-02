@@ -96,6 +96,10 @@ export class Game extends Scene {
   }
 
   gameOver() {
+    // Store the current wave before game over
+    const currentWave = this.levelManager?.currentWave || 1;
+    this.registry.set("restartWave", currentWave);
+
     // Stop all game activity IMMEDIATELY
     if (this.levelManager) {
       this.levelManager.isActive = false;
@@ -206,8 +210,6 @@ export class Game extends Scene {
       console.log(`🔧 DEV MODE: Skipping to Wave ${DEV_START_WAVE}`);
       this.registry.set("tutorialCompleted", true);
       this.time.delayedCall(500, () => {
-        // const waveName = DEV_START_WAVE === 1 ? "FIRST WAVE" : "SECOND WAVE";
-
         let waveName = " ";
         if (DEV_START_WAVE === 1) {
           waveName = "FIRST WAVE";
@@ -224,6 +226,28 @@ export class Game extends Scene {
       return;
     }
     // =============================
+
+    // Check if we're restarting from a game over
+    const restartWave = this.registry.get("restartWave");
+
+    if (restartWave && restartWave > 1) {
+      // Player died and needs to restart at their current wave
+      console.log(`Restarting at Wave ${restartWave}`);
+
+      let waveName = "";
+      if (restartWave === 2) {
+        waveName = "SECOND WAVE";
+      } else if (restartWave === 3) {
+        waveName = "THIRD WAVE";
+      }
+
+      this.time.delayedCall(500, () => {
+        this.displayWaveText(waveName, () => {
+          this.levelManager.startLevel(60, restartWave);
+        });
+      });
+      return;
+    }
 
     // Only show tutorial if not completed before
     if (!this.registry.get("tutorialCompleted")) {
