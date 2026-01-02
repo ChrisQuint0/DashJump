@@ -1,5 +1,6 @@
 //src/game/main.js
 
+import { Boot } from "./scenes/Boot";
 import { Game as MainGame } from "./scenes/Game";
 import { AUTO, Scale, Game } from "phaser";
 
@@ -23,7 +24,7 @@ const config = {
     mode: Scale.FIT,
     autoCenter: Scale.CENTER_BOTH,
   },
-  scene: [MainGame],
+  scene: [Boot, MainGame],
 };
 
 const StartGame = (parent) => {

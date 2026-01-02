@@ -28,43 +28,6 @@ export class Game extends Scene {
     this.hearts = [];
   }
 
-  preload() {
-    this.load.setPath("assets");
-    this.load.image("background", "bg.png");
-    this.load.image("cloud", "cloud.png");
-    this.load.image("spike", "spike.png");
-    this.load.image("hand", "hand.png");
-    this.load.image("red", "red.png");
-    this.load.image("logo", "dashJumpLogo.png");
-    this.load.spritesheet("player", "blu.png", {
-      frameWidth: 9,
-      frameHeight: 7,
-      endFrame: 1,
-    });
-    this.load.image("geri", "geri.png");
-    this.load.image("bubble", "bubble.png");
-    this.load.image("shootingBoss", "shootingBoss.png");
-    this.load.image("heart", "heart.png");
-    this.load.image("emptyHeart", "heartEmpty.png");
-    this.load.image("weave", "weave.png");
-    this.load.image("plasma", "plasma.png");
-
-    this.load.image("puppyOne", "puppyOne.png");
-    this.load.image("puppyTwo", "puppyTwo.png");
-    this.load.image("puppyThree", "puppyThree.png");
-
-    this.loadFont();
-    this.createSpeedLineTexture();
-  }
-
-  loadFont() {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-  }
-
   createSpeedLineTexture() {
     if (!this.textures.exists("speedLine")) {
       ParticleEffects.createSpeedLineTexture(this);
@@ -72,6 +35,7 @@ export class Game extends Scene {
   }
 
   create() {
+    this.createSpeedLineTexture();
     // Reset lives at the start of create
     this.lives = GAME_CONFIG.PLAYER.MAX_LIVES;
 
