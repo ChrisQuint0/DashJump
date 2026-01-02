@@ -254,6 +254,49 @@ export class WaveManager {
     });
   }
 
+  // === WAVE 3 CONTINUOUS WEAVE SPAWNING ===
+
+  startWave3WeaveSpawning() {
+    console.log("Starting continuous weave spawning for Wave 3 fill");
+
+    // Spawn first weave immediately
+    this.spawnWeaveForWave3();
+
+    // Keep spawning weaves until level ends
+    this.wave3WeaveInterval = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        const currentWeave = this.obstacleSpawner.activeWeave;
+
+        // If no active weave and level is still active, spawn a new one
+        if (!currentWeave && this.levelManager.isActive) {
+          this.spawnWeaveForWave3();
+        }
+
+        // Stop checking when level is inactive
+        if (!this.levelManager.isActive) {
+          this.stopWave3WeaveSpawning();
+        }
+      },
+      loop: true,
+    });
+  }
+
+  spawnWeaveForWave3() {
+    if (this.obstacleSpawner.activeWeave) return;
+
+    console.log("Spawning weave for Wave 3");
+    const weaveData = this.obstacleSpawner.spawnWeave();
+  }
+
+  stopWave3WeaveSpawning() {
+    if (this.wave3WeaveInterval) {
+      this.wave3WeaveInterval.remove();
+      this.wave3WeaveInterval = null;
+      console.log("Stopped Wave 3 weave spawning");
+    }
+  }
+
   // === WAVE 3 SCRIPTED SEQUENCE ===
 
   startWave3Sequence() {
@@ -322,78 +365,26 @@ export class WaveManager {
     );
     scheduleEvent(() => {}, 16000);
 
-    const timeRemaining = 90000 - currentTime; // 1:30 total duration
+    // === DEDICATED WEAVE SECTION ===
+    // Calculate remaining time and fill ONLY with weaves
+    const timeRemaining = 90000 - currentTime;
     console.log(
-      `Time remaining to fill: ${timeRemaining}ms, current: ${currentTime}ms`
+      `Starting weave section at ${currentTime}ms, will run for ${timeRemaining}ms`
     );
 
-    // More interesting fill patterns with variety
-    let patternIndex = 0;
-    const fillPatterns = [
-      // Pattern 1: Double dash scenario
-      () => {
-        scheduleEvent(
-          () => this.obstacleSpawner.spawnLaneSpike(GAME_CONFIG.PLAYER.LEFT_X),
-          0
-        );
-        scheduleEvent(() => {}, 800);
-        scheduleEvent(
-          () => this.obstacleSpawner.spawnLaneSpike(GAME_CONFIG.PLAYER.RIGHT_X),
-          0
-        );
-        scheduleEvent(() => {}, 1500);
-        scheduleEvent(() => this.obstacleSpawner.spawnBall(), 0);
-        scheduleEvent(() => {}, 2500);
-      },
+    scheduleEvent(() => this.startWave3WeaveSpawning(), 0);
 
-      // Pattern 2: Ball gauntlet
-      () => {
-        scheduleEvent(() => this.obstacleSpawner.spawnBall(), 0);
-        scheduleEvent(() => {}, 2000);
-        scheduleEvent(() => this.obstacleSpawner.spawnTargetedSpike(), 0);
-        scheduleEvent(() => {}, 2000);
-        scheduleEvent(() => this.obstacleSpawner.spawnBall(), 0);
-        scheduleEvent(() => {}, 2500);
-      },
+    // Let weaves run until the 90-second mark
+    scheduleEvent(() => {}, timeRemaining);
 
-      // Pattern 3: Mini spike shower with ball
-      () => {
-        scheduleEvent(() => this.spawnMiniSpikeShower(), 0);
-        scheduleEvent(() => {}, 3500);
-      },
-
-      // Pattern 4: Targeted spike pressure
-      () => {
-        scheduleEvent(() => this.obstacleSpawner.spawnTargetedSpike(), 0);
-        scheduleEvent(() => {}, 1500);
-        scheduleEvent(() => this.obstacleSpawner.spawnTargetedSpike(), 0);
-        scheduleEvent(() => {}, 1500);
-        scheduleEvent(() => this.obstacleSpawner.spawnBall(), 0);
-        scheduleEvent(() => {}, 2500);
-      },
-
-      // Pattern 5: The trap scenario
-      () => {
-        scheduleEvent(() => this.obstacleSpawner.spawnBall(), 0);
-        scheduleEvent(() => {}, 800);
-        scheduleEvent(() => this.obstacleSpawner.spawnTargetedSpike(), 0);
-        scheduleEvent(() => {}, 2000);
-        scheduleEvent(() => this.obstacleSpawner.spawnBall(), 0);
-        scheduleEvent(() => {}, 2500);
-      },
-    ];
-
-    while (currentTime < 85000) {
-      // Fill until 85 seconds (leave 5s for ending)
-      fillPatterns[patternIndex % fillPatterns.length]();
-      patternIndex++;
-    }
-
-    console.log(`Final sequence time: ${currentTime}ms`);
+    console.log(`Wave 3 sequence ends at: ${currentTime}ms`);
 
     // Trigger boss at 90 seconds (1:30)
     this.scene.time.delayedCall(90000, () => {
-      console.log("Wave 3 time complete, triggering final boss");
+      console.log(
+        "Wave 3 time complete, stopping weaves and triggering final boss"
+      );
+      this.stopWave3WeaveSpawning();
       this.levelManager.stopLevel();
     });
   }
@@ -495,6 +486,37 @@ export class WaveManager {
           this.levelManager.bossManager.spawnWave3FinalBoss();
         },
       });
+    });
+  }
+
+  // === ENDING SEQUENCE ===
+
+  triggerEndingSequence() {
+    const endingLines = [
+      "And here we are.",
+      "The end.",
+      "Or... is it?",
+      "You've overcome every adversity I placed before you.",
+      "Congratulations, I suppose.",
+      "But tell me something—",
+      "What did you win, exactly?",
+      "The right to do it all again?",
+      "To dash and jump through someone else's obstacles?",
+      "You see, the real adversity was never the spikes or the projectiles.",
+      "It was believing there was ever a finish line to begin with.",
+      "But don't worry.",
+      "I'm sure your next challenge will be different.",
+      "It won't be.",
+      "Goodbye, little dasher.",
+      "Until inevitably... next time.",
+    ];
+
+    this.scene.dialogueManager.lines = endingLines;
+    this.scene.dialogueManager.dialogueIndex = 0;
+
+    this.scene.dialogueManager.showIntroduction(() => {
+      console.log("Game complete! Ending dialogue finished.");
+      // Could add credits, return to title, etc. here
     });
   }
 

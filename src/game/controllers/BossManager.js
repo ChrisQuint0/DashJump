@@ -221,7 +221,9 @@ export class BossManager {
     // Final exit at the very end
     this.scene.time.delayedCall(currentTime, () => {
       this.exitBoss(() => {
-        console.log("Wave 3 complete! Game finished!");
+        console.log("Wave 3 complete! Triggering ending sequence...");
+        // Trigger the ending dialogue
+        this.levelManager.waveManager.triggerEndingSequence();
       });
     });
   }
@@ -279,6 +281,13 @@ export class BossManager {
         for (let i = 0; i < shotCount; i++) {
           this.scene.time.delayedCall(i * 1000, () => {
             this.fireShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
+
+            // Start ball spawning after first shot
+            if (i === 0) {
+              this.scene.time.delayedCall(500, () => {
+                this.startLaneBallSpawning(shotCount * 1000);
+              });
+            }
           });
         }
 
@@ -299,7 +308,54 @@ export class BossManager {
     for (let i = 0; i < shotCount; i++) {
       this.scene.time.delayedCall(i * 1000, () => {
         this.fireShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
+
+        // Start ball spawning after first shot
+        if (i === 0) {
+          this.scene.time.delayedCall(500, () => {
+            this.startLaneBallSpawning(shotCount * 1000);
+          });
+        }
       });
+    }
+  }
+
+  // Spawns balls continuously during lane attack sequences
+  startLaneBallSpawning(duration) {
+    console.log(`Starting lane ball spawning for ${duration}ms`);
+
+    // Spawn first ball immediately
+    this.levelManager.obstacleSpawner.spawnBall();
+
+    // Keep spawning new balls as they leave the screen
+    this.laneBallInterval = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        const currentBall = this.levelManager.obstacleSpawner.activeBall;
+
+        // If no active ball, spawn a new one
+        if (!currentBall) {
+          this.levelManager.obstacleSpawner.spawnBall();
+        }
+      },
+      loop: true,
+    });
+
+    // Stop spawning after the lane attack duration
+    this.scene.time.delayedCall(duration, () => {
+      this.stopLaneBallSpawning();
+    });
+  }
+
+  stopLaneBallSpawning() {
+    if (this.laneBallInterval) {
+      this.laneBallInterval.remove();
+      this.laneBallInterval = null;
+      console.log("Stopped lane ball spawning");
+    }
+    // Destroy any active ball
+    if (this.levelManager.obstacleSpawner.activeBall) {
+      this.levelManager.obstacleSpawner.activeBall.destroy();
+      this.levelManager.obstacleSpawner.activeBall = null;
     }
   }
 
