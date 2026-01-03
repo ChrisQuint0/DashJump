@@ -10,6 +10,9 @@ export class PlayerController {
   }
 
   update() {
+    // Safety check: ensure player and body exist before accessing properties
+    if (!this.player || !this.player.body) return;
+
     const isGrounded =
       this.player.body.blocked.down || this.player.body.touching.down;
     this.player.setFrame(isGrounded ? 0 : 1);

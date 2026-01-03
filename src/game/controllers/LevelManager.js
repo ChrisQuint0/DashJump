@@ -72,6 +72,13 @@ export class LevelManager {
       this.levelEndTimer = null;
     }
 
+    // CRITICAL: Stop Wave 3 weave spawning BEFORE ending the wave
+    // But don't destroy active weave - let it exit naturally
+    if (this.currentWave === 3) {
+      console.log("Stopping Wave 3 weave spawning before boss trigger");
+      this.waveManager.stopWave3WeaveSpawning();
+    }
+
     // Delegate wave ending to WaveManager
     this.waveManager.endWave(this.currentWave);
 

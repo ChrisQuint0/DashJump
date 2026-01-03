@@ -542,6 +542,8 @@ export class WaveManager {
       this.wave3WeaveInterval = null;
       console.log("Stopped Wave 3 weave spawning");
     }
+    // Note: We don't destroy the active weave here anymore
+    // Let it exit naturally
   }
 
   // === WAVE 3 SCRIPTED SEQUENCE ===
@@ -613,27 +615,22 @@ export class WaveManager {
     scheduleEvent(() => {}, 17000); // 1000ms warning + 16000ms attack
 
     // === DEDICATED WEAVE SECTION ===
-    // Calculate remaining time and fill ONLY with weaves
-    const timeRemaining = 90000 - currentTime;
-    console.log(
-      `Starting weave section at ${currentTime}ms, will run for ${timeRemaining}ms`
-    );
+    // Weaves spawn continuously for 30 seconds
+    console.log(`Starting weave section at ${currentTime}ms`);
 
     scheduleEvent(() => this.startWave3WeaveSpawning(), 0);
 
-    // Let weaves run until the 90-second mark
-    scheduleEvent(() => {}, timeRemaining);
+    // Let weaves run for 30 seconds
+    scheduleEvent(() => {}, 30000);
 
     console.log(`Wave 3 sequence ends at: ${currentTime}ms`);
 
-    // Trigger boss at 90 seconds (1:30)
-    this.scene.time.delayedCall(90000, () => {
-      console.log(
-        "Wave 3 time complete, stopping weaves and triggering final boss"
-      );
+    // Trigger boss at the end of the sequence
+    scheduleEvent(() => {
+      console.log("Wave 3 scripted sequence complete, triggering boss");
       this.stopWave3WeaveSpawning();
       this.levelManager.stopLevel();
-    });
+    }, 0);
   }
 
   // === WAVE ENDINGS ===
@@ -713,6 +710,40 @@ export class WaveManager {
 
   endWave3() {
     this.isBossActive = true;
+
+    // Stop spawning NEW weaves, but let active one finish
+    if (this.wave3WeaveInterval) {
+      this.wave3WeaveInterval.remove();
+      this.wave3WeaveInterval = null;
+      console.log("Stopped Wave 3 weave spawning interval");
+    }
+
+    // Check if there's an active weave
+    if (this.obstacleSpawner.activeWeave) {
+      console.log("Waiting for active weave to exit before boss sequence");
+
+      // Wait for the weave to exit naturally
+      const waitForWeaveExit = this.scene.time.addEvent({
+        delay: 100,
+        callback: () => {
+          if (!this.obstacleSpawner.activeWeave) {
+            // Weave has exited, now start boss sequence
+            console.log("Weave has exited, starting boss sequence now");
+            waitForWeaveExit.remove();
+            this.startWave3BossSequence();
+          }
+        },
+        loop: true,
+      });
+    } else {
+      // No active weave, start boss sequence immediately
+      console.log("No active weave, starting boss sequence immediately");
+      this.startWave3BossSequence();
+    }
+  }
+
+  startWave3BossSequence() {
+    console.log("Starting Wave 3 boss sequence");
     this.startSpikeShower();
 
     this.scene.time.delayedCall(7000, () => {
