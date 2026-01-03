@@ -41,8 +41,8 @@ export class LevelManager {
     // Delegate to WaveManager
     this.waveManager.startWave(durationSeconds, waveNumber);
 
-    // Setup difficulty scaling (not for Wave 3 which is scripted)
-    if (waveNumber !== 3) {
+    // Setup difficulty scaling ONLY for Wave 1 (not Wave 2 or 3 which are scripted)
+    if (waveNumber === 1) {
       this.difficultyEvent = this.scene.time.addEvent({
         delay: 15000,
         callback: () => {
@@ -56,9 +56,12 @@ export class LevelManager {
         () => this.stopLevel()
       );
     }
+    // Wave 2 and 3 are purely sequence-based, no timers
   }
 
   stopLevel() {
+    console.log("🛑 stopLevel called for Wave", this.currentWave);
+
     // Clean up all timers
     if (this.difficultyEvent) {
       this.difficultyEvent.remove();

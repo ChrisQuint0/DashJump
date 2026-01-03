@@ -10,38 +10,40 @@ export class WaveManager {
     this.obstacleSpawner = obstacleSpawner;
 
     this.isSpikeShowerMode = false;
-    this.weaveCount = 0;
     this.lastScenarioIndex = -1;
-    this.isBossActive = false; // Add flag to track boss state
+    this.isBossActive = false;
   }
 
   startWave(durationSeconds, waveNumber) {
     this.isSpikeShowerMode = false;
-    this.weaveCount = 0;
-    this.isBossActive = false; // Reset boss flag at wave start
+    this.isBossActive = false;
+
+    if (waveNumber === 2) {
+      this.startWave2Sequence();
+      return;
+    }
 
     if (waveNumber === 3) {
       this.startWave3Sequence();
       return;
     }
 
+    // Wave 1 still uses dynamic spawning
     this.planNextAction(waveNumber);
   }
 
   planNextAction(waveNumber) {
-    if (!this.levelManager.isActive || this.isBossActive) return; // Check boss flag
+    if (!this.levelManager.isActive || this.isBossActive) return;
 
     if (waveNumber === 1) {
       this.planWave1Action();
-    } else if (waveNumber === 2) {
-      this.planWave2Action();
     }
   }
 
   // === WAVE 1 LOGIC ===
 
   planWave1Action() {
-    if (!this.levelManager.isActive || this.isBossActive) return; // Check boss flag
+    if (!this.levelManager.isActive || this.isBossActive) return;
 
     if (this.obstacleSpawner.activeSpike) {
       this.scene.time.delayedCall(500, () =>
@@ -65,87 +67,7 @@ export class WaveManager {
     );
   }
 
-  // === WAVE 2 LOGIC ===
-
-  planWave2Action() {
-    if (
-      !this.levelManager.isActive ||
-      this.isSpikeShowerMode ||
-      this.isBossActive
-    )
-      return; // Check boss flag
-
-    if (this.obstacleSpawner.activeSpike) {
-      this.scene.time.delayedCall(500, () =>
-        this.planNextAction(this.levelManager.currentWave)
-      );
-      return;
-    }
-
-    // If weave is active, don't spawn anything - just wait
-    if (this.obstacleSpawner.activeWeave) {
-      this.scene.time.delayedCall(500, () =>
-        this.planNextAction(this.levelManager.currentWave)
-      );
-      return;
-    }
-
-    // 30% chance to spawn weave
-    if (
-      !this.obstacleSpawner.activeWeave &&
-      !this.obstacleSpawner.activeBall &&
-      Math.random() < 0.3
-    ) {
-      this.weaveCount++;
-      const weaveData = this.obstacleSpawner.spawnWeave();
-
-      // Monitor for weave exit
-      this.monitorWeaveExit(weaveData.exitCheck);
-      return;
-    }
-
-    // Standard spike/ball logic
-    const actionType = Math.random();
-    if (
-      actionType < 0.4 &&
-      !this.obstacleSpawner.activeBall &&
-      !this.obstacleSpawner.activeWeave
-    ) {
-      this.triggerRandomScenario();
-    } else {
-      this.obstacleSpawner.spawnTargetedSpike();
-    }
-
-    const nextDelay = this.obstacleSpawner.activeBall ? 2500 : 1800;
-    this.scene.time.delayedCall(
-      nextDelay / this.levelManager.difficultyMultiplier,
-      () => this.planNextAction(2)
-    );
-  }
-
-  monitorWeaveExit(exitCheck) {
-    const checkInterval = this.scene.time.addEvent({
-      delay: 100,
-      callback: () => {
-        if (!this.obstacleSpawner.activeWeave) {
-          checkInterval.remove();
-
-          // Trigger mini shower after weave exits naturally
-          if (
-            !this.obstacleSpawner.activeBall &&
-            !this.obstacleSpawner.activeSpike
-          ) {
-            this.spawnMiniSpikeShower();
-          } else {
-            this.scene.time.delayedCall(1000, () => this.planNextAction(2));
-          }
-        }
-      },
-      loop: true,
-    });
-  }
-
-  // === COMBO SCENARIOS ===
+  // === COMBO SCENARIOS (Wave 1 only) ===
 
   triggerRandomScenario() {
     const scenarios = [
@@ -214,14 +136,13 @@ export class WaveManager {
       });
     });
 
+    // Note: For Wave 1, this spawns a ball after. For Wave 2, handled by sequence.
     this.scene.time.delayedCall(1500, () => {
-      if (this.levelManager.isActive) {
+      if (this.levelManager.isActive && this.levelManager.currentWave === 1) {
         console.log("Mini shower complete - spawning ball");
         this.obstacleSpawner.spawnBall();
       }
     });
-
-    this.scene.time.delayedCall(2000, () => this.planNextAction(2));
   }
 
   startSpikeShower() {
@@ -255,6 +176,328 @@ export class WaveManager {
     this.scene.time.delayedCall(6500, () => {
       this.isSpikeShowerMode = false;
       console.log("Spike shower mode ended");
+    });
+  }
+
+  // === WAVE 2 SCRIPTED SEQUENCE ===
+
+  startWave2Sequence() {
+    console.log("Starting Wave 2 scripted sequence");
+
+    // Initialize shower tracking flag
+    this.isShowerActive = false;
+
+    this.wave2Sequence = [
+      { type: "spike" },
+      { type: "ball" },
+      { type: "spike" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "miniShower" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "miniShower" },
+      { type: "ball" },
+      { type: "miniShower" },
+      { type: "ball" },
+      { type: "miniShower" },
+      { type: "weave" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "miniShower" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "miniShower" },
+      { type: "weave" },
+      { type: "spike" },
+      { type: "ball" },
+      { type: "weave" },
+      { type: "miniShower" },
+      { type: "miniShower" },
+      { type: "miniShower" },
+    ];
+
+    this.wave2SequenceIndex = 0;
+    this.processNextWave2Step();
+  }
+
+  processNextWave2Step() {
+    if (!this.levelManager.isActive) {
+      console.log("⚠️ Level not active, stopping sequence");
+      return;
+    }
+
+    if (this.wave2SequenceIndex >= this.wave2Sequence.length) {
+      console.log(
+        "✅ Wave 2 sequence complete (all steps done), triggering boss"
+      );
+      this.levelManager.stopLevel();
+      return;
+    }
+
+    const step = this.wave2Sequence[this.wave2SequenceIndex];
+    console.log(
+      `📍 Wave 2 step ${this.wave2SequenceIndex + 1}/${
+        this.wave2Sequence.length
+      }: ${step.type}`
+    );
+    this.wave2SequenceIndex++;
+
+    switch (step.type) {
+      case "spike":
+        this.spawnSpikeAndWait();
+        break;
+      case "ball":
+        this.spawnBallAndWait();
+        break;
+      case "weave":
+        this.spawnWeaveAndWait();
+        break;
+      case "miniShower":
+        this.spawnMiniShowerAndWait();
+        break;
+    }
+  }
+
+  spawnSpikeAndWait() {
+    // Don't spawn if anything is active
+    if (
+      this.obstacleSpawner.activeSpike ||
+      this.obstacleSpawner.activeBall ||
+      this.obstacleSpawner.activeWeave ||
+      this.isShowerActive
+    ) {
+      console.log("Cannot spawn spike - other obstacles active, waiting...");
+      this.scene.time.delayedCall(200, () => {
+        this.wave2SequenceIndex--;
+        this.processNextWave2Step();
+      });
+      return;
+    }
+
+    this.obstacleSpawner.spawnTargetedSpike();
+
+    // Check every 100ms if spike is cleared
+    const checkInterval = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (!this.obstacleSpawner.activeSpike) {
+          checkInterval.remove();
+          // Small delay before next obstacle
+          this.scene.time.delayedCall(300, () => this.processNextWave2Step());
+        }
+      },
+      loop: true,
+    });
+  }
+
+  spawnBallAndWait() {
+    // Don't spawn if anything is active
+    if (
+      this.obstacleSpawner.activeSpike ||
+      this.obstacleSpawner.activeBall ||
+      this.obstacleSpawner.activeWeave ||
+      this.isShowerActive
+    ) {
+      console.log("Cannot spawn ball - other obstacles active, waiting...");
+      this.scene.time.delayedCall(200, () => {
+        this.wave2SequenceIndex--;
+        this.processNextWave2Step();
+      });
+      return;
+    }
+
+    this.obstacleSpawner.spawnBall();
+
+    // Check every 100ms if ball is cleared
+    const checkInterval = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (!this.obstacleSpawner.activeBall) {
+          checkInterval.remove();
+          // Small delay before next obstacle
+          this.scene.time.delayedCall(300, () => this.processNextWave2Step());
+        }
+      },
+      loop: true,
+    });
+  }
+
+  spawnWeaveAndWait() {
+    // Check if any other obstacles are active
+    if (
+      this.obstacleSpawner.activeSpike ||
+      this.obstacleSpawner.activeBall ||
+      this.obstacleSpawner.activeWeave ||
+      this.isShowerActive
+    ) {
+      console.log("Cannot spawn weave - other obstacles active, waiting...");
+      // Wait a bit and try again
+      this.scene.time.delayedCall(200, () => {
+        // Retry this same step (don't increment index)
+        this.wave2SequenceIndex--;
+        this.processNextWave2Step();
+      });
+      return;
+    }
+
+    this.obstacleSpawner.spawnWeave();
+
+    // Check every 100ms if weave is cleared
+    const checkInterval = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        if (!this.obstacleSpawner.activeWeave) {
+          checkInterval.remove();
+          // Small delay before next obstacle
+          this.scene.time.delayedCall(300, () => this.processNextWave2Step());
+        }
+      },
+      loop: true,
+    });
+  }
+
+  spawnMiniShowerAndWait() {
+    // Don't spawn if anything is active
+    if (
+      this.obstacleSpawner.activeSpike ||
+      this.obstacleSpawner.activeBall ||
+      this.obstacleSpawner.activeWeave ||
+      this.isShowerActive
+    ) {
+      console.log(
+        "❌ Cannot spawn mini shower - waiting for obstacles to clear...",
+        {
+          spike: !!this.obstacleSpawner.activeSpike,
+          ball: !!this.obstacleSpawner.activeBall,
+          weave: !!this.obstacleSpawner.activeWeave,
+          shower: this.isShowerActive,
+        }
+      );
+      this.scene.time.delayedCall(200, () => {
+        this.wave2SequenceIndex--;
+        this.processNextWave2Step();
+      });
+      return;
+    }
+
+    console.log("✅ Starting mini shower");
+    // Mark shower as active IMMEDIATELY
+    this.isShowerActive = true;
+
+    // Track all spikes spawned in this shower
+    this.miniShowerSpikes = [];
+
+    const sequence = [
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 0 },
+      { x: GAME_CONFIG.PLAYER.RIGHT_X, delay: 500 },
+      { x: GAME_CONFIG.PLAYER.LEFT_X, delay: 1000 },
+    ];
+
+    sequence.forEach((spikeData, index) => {
+      this.scene.time.delayedCall(spikeData.delay, () => {
+        if (this.levelManager.isActive && this.isShowerActive) {
+          console.log(
+            `  🔸 Spawning shower spike ${index + 1}/3 at x=${spikeData.x}`
+          );
+          // Spawn lane spike and track it
+          const spike = this.scene.physics.add.sprite(
+            spikeData.x,
+            -100,
+            "spike"
+          );
+          spike.setScale(GAME_CONFIG.PLAYER.SCALE - 10);
+          spike.body.setAllowGravity(false);
+
+          this.miniShowerSpikes.push(spike);
+
+          const trail = this.createSpikeTrailForShower(spike);
+
+          this.scene.tweens.add({
+            targets: spike,
+            y: 150,
+            duration: 500,
+            onComplete: () => {
+              if (spike.active) {
+                spike.body.setAllowGravity(true);
+                spike.setGravityY(4500);
+                trail.start();
+              }
+            },
+          });
+
+          this.setupShowerSpikeCollision(spike, trail);
+        }
+      });
+    });
+
+    // Check every 100ms if ALL shower spikes are cleared
+    const checkInterval = this.scene.time.addEvent({
+      delay: 100,
+      callback: () => {
+        // Only check if we have spawned all 3 spikes
+        if (this.miniShowerSpikes.length < 3) {
+          return; // Wait for all spikes to spawn first
+        }
+
+        // Check if all spikes from this shower are destroyed
+        const allCleared = this.miniShowerSpikes.every(
+          (spike) => !spike || !spike.active
+        );
+
+        if (allCleared) {
+          console.log("✅ Mini shower complete - all spikes cleared");
+          checkInterval.remove();
+          this.miniShowerSpikes = [];
+          this.isShowerActive = false; // Mark shower as complete
+          // Small delay before next obstacle
+          this.scene.time.delayedCall(500, () => {
+            console.log("⏭️ Proceeding to next sequence step");
+            this.processNextWave2Step();
+          });
+        }
+      },
+      loop: true,
+    });
+  }
+
+  createSpikeTrailForShower(spike) {
+    const trail = this.scene.add.particles(0, 0, "speedLine", {
+      follow: spike,
+      scale: { start: 6, end: 1 },
+      alpha: { start: 0.6, end: 0 },
+      lifespan: 300,
+      frequency: 20,
+      blendMode: "ADD",
+      emitting: false,
+    });
+    trail.setDepth(4);
+    spike.on("destroy", () => trail.destroy());
+    return trail;
+  }
+
+  setupShowerSpikeCollision(spike, trail) {
+    // Ground collision
+    this.scene.physics.add.collider(spike, this.scene.ground, () => {
+      if (trail) trail.stop();
+
+      this.scene.tweens.add({
+        targets: spike,
+        alpha: 0,
+        scale: 0,
+        duration: 200,
+        onComplete: () => spike.destroy(),
+      });
+    });
+
+    // Player collision
+    this.scene.physics.add.overlap(spike, this.playerController.player, () => {
+      spike.destroy();
+      this.scene.updateLives();
     });
   }
 
@@ -347,7 +590,7 @@ export class WaveManager {
         ),
       0
     );
-    scheduleEvent(() => {}, 16000);
+    scheduleEvent(() => {}, 17000); // 1000ms warning + 16000ms attack
 
     scheduleEvent(() => this.obstacleSpawner.spawnTargetedSpike(), 0);
     scheduleEvent(() => {}, 2000);
@@ -367,7 +610,7 @@ export class WaveManager {
         ),
       0
     );
-    scheduleEvent(() => {}, 16000);
+    scheduleEvent(() => {}, 17000); // 1000ms warning + 16000ms attack
 
     // === DEDICATED WEAVE SECTION ===
     // Calculate remaining time and fill ONLY with weaves
@@ -406,7 +649,7 @@ export class WaveManager {
   }
 
   endWave1() {
-    this.isBossActive = true; // Set boss flag to stop obstacle spawning
+    this.isBossActive = true;
 
     const warningText = this.scene.add
       .text(540, 960, "You better move,\nhe's aiming.\nDon't get shot.", {
@@ -428,7 +671,7 @@ export class WaveManager {
       onComplete: () => {
         warningText.destroy();
         this.levelManager.bossManager.spawnWave1Boss(() => {
-          this.isBossActive = false; // Reset boss flag after boss is done
+          this.isBossActive = false;
           this.triggerPostBossSequence();
         });
       },
@@ -436,7 +679,7 @@ export class WaveManager {
   }
 
   endWave2() {
-    this.isBossActive = true; // Set boss flag to stop obstacle spawning
+    this.isBossActive = true;
     this.startSpikeShower();
 
     this.scene.time.delayedCall(5500, () => {
@@ -460,7 +703,7 @@ export class WaveManager {
         onComplete: () => {
           warningText.destroy();
           this.levelManager.bossManager.spawnWave2Boss(() => {
-            this.isBossActive = false; // Reset boss flag after boss is done
+            this.isBossActive = false;
             this.triggerPreWave3Sequence();
           });
         },
@@ -469,7 +712,7 @@ export class WaveManager {
   }
 
   endWave3() {
-    this.isBossActive = true; // Set boss flag (though Wave 3 is scripted)
+    this.isBossActive = true;
     this.startSpikeShower();
 
     this.scene.time.delayedCall(7000, () => {
@@ -492,7 +735,6 @@ export class WaveManager {
         hold: 2000,
         onComplete: () => {
           warningText.destroy();
-          // This triggers the FINAL boss sequence (10 shots, 10 shots, lane attacks)
           this.levelManager.bossManager.spawnWave3FinalBoss();
         },
       });
@@ -526,7 +768,6 @@ export class WaveManager {
 
     this.scene.dialogueManager.showIntroduction(() => {
       console.log("Game complete! Showing ending screen...");
-      // Show the thank you / credits screen
       this.scene.endingScreenManager.show();
     });
   }
