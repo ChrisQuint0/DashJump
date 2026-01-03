@@ -44,6 +44,11 @@ export class TutorialManager {
     if (this.isTutorialActive) return;
     this.isTutorialActive = true;
 
+    // Start background music when tutorial begins
+    if (this.scene.audioManager) {
+      this.scene.audioManager.startBackgroundMusic();
+    }
+
     // Part 1: Left Spike
     this.spawnFallingSpike(
       255,

@@ -73,6 +73,11 @@ export class Boot extends Scene {
       assetText.setText("Loading: " + file.key);
     });
 
+    // Handle load errors
+    this.load.on("loaderror", (file) => {
+      console.error("Error loading file:", file.key, file.src);
+    });
+
     // Clean up when loading is complete
     this.load.on("complete", () => {
       progressBar.destroy();
@@ -80,6 +85,11 @@ export class Boot extends Scene {
       percentText.destroy();
       assetText.destroy();
       loadingText.destroy();
+
+      // Debug: Check if audio files loaded
+      console.log("Audio files loaded:");
+      console.log("- click:", this.cache.audio.exists("click"));
+      console.log("- wave:", this.cache.audio.exists("wave"));
     });
 
     // Load the font first
@@ -107,6 +117,10 @@ export class Boot extends Scene {
     this.load.image("puppyOne", "puppyOne.png");
     this.load.image("puppyTwo", "puppyTwo.png");
     this.load.image("puppyThree", "puppyThree.png");
+
+    // Load audio files
+    this.load.audio("click", "audio/click.mp3");
+    this.load.audio("wave", "audio/wave.mp3");
   }
 
   loadFont() {

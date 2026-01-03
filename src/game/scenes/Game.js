@@ -13,10 +13,11 @@ import { DialogueManager } from "../controllers/DialogueManager";
 import { LevelManager } from "../controllers/LevelManager";
 import { GameOverManager } from "../controllers/GameOverManager";
 import { EndingScreenManager } from "../controllers/EndingScreenManager";
+import { AudioManager } from "../controllers/AudioManager";
 
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip tutorial, dialogue, and wave 1
-const DEV_MODE = true;
+const DEV_MODE = false;
 const DEV_START_WAVE = 3; // Which wave to start on
 // ============================
 
@@ -131,6 +132,7 @@ export class Game extends Scene {
   }
 
   setupManagers() {
+    this.audioManager = new AudioManager(this);
     this.transitionManager = new TransitionManager(this);
     this.backgroundManager = new BackgroundManager(this);
     this.dialogueManager = new DialogueManager(this);

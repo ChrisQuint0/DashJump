@@ -84,6 +84,11 @@ export class TitleScreenManager {
   }
 
   onPlayButtonPressed() {
+    // Play click sound
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playClickSound();
+    }
+
     // This will be called from the scene
     if (this.scene.onTitlePlayPressed) {
       this.scene.onTitlePlayPressed();
