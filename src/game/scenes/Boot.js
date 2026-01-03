@@ -121,6 +121,16 @@ export class Boot extends Scene {
     // Load audio files
     this.load.audio("click", "audio/click.mp3");
     this.load.audio("wave", "audio/wave.mp3");
+    this.load.audio("click", "audio/click.mp3");
+    this.load.audio("wave", "audio/wave.mp3");
+    this.load.audio("boss", "audio/boss.mp3");
+    this.load.audio("dash", "audio/dash.mp3");
+    this.load.audio("end", "audio/end.mp3");
+    this.load.audio("jump", "audio/jump.mp3");
+    this.load.audio("plasma", "audio/plasma.mp3");
+    this.load.audio("roll", "audio/roll.mp3");
+    this.load.audio("spike", "audio/spike.mp3");
+    this.load.audio("warning", "audio/warning.mp3");
   }
 
   loadFont() {

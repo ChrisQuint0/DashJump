@@ -45,6 +45,25 @@ export class AudioManager {
     }
   }
 
+  playDashSound() {
+    // Unlock audio first
+    this.unlockAudio();
+
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("dash")) {
+      console.warn("Dash sound not loaded in cache");
+      return;
+    }
+
+    // Play immediately
+    try {
+      this.scene.sound.play("dash", { volume: 0.4 });
+      console.log("Dash sound played");
+    } catch (error) {
+      console.error("Error playing dash sound:", error);
+    }
+  }
+
   startBackgroundMusic() {
     // Unlock audio first
     this.unlockAudio();
@@ -66,9 +85,9 @@ export class AudioManager {
     // Small delay to ensure audio context is ready
     this.scene.time.delayedCall(50, () => {
       try {
-        // Start new music with 50% volume
+        // Start new music with 30% volume
         this.bgMusic = this.scene.sound.add("wave", {
-          volume: 0.5, // Changed to 50%
+          volume: 0.3, // Changed to 30%
           loop: true,
         });
 

@@ -28,6 +28,11 @@ export class PlayerController {
   dashTo(targetX, flip) {
     if (this.player.x === targetX) return;
 
+    // Play dash sound
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playDashSound();
+    }
+
     this.particleEffects.resetToDash();
     this.player.setFlipX(flip);
     this.particleEffects.setDashOffset(flip ? 40 : -40, 0);
