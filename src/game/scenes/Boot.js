@@ -104,7 +104,6 @@ export class Boot extends Scene {
     this.load.image("heart", "heart.png");
     this.load.image("emptyHeart", "heartEmpty.png");
     this.load.image("weave", "weave.png");
-    this.load.image("plasma", "plasma.png");
     this.load.image("puppyOne", "puppyOne.png");
     this.load.image("puppyTwo", "puppyTwo.png");
     this.load.image("puppyThree", "puppyThree.png");

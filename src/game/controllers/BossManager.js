@@ -8,6 +8,53 @@ export class BossManager {
     this.playerController = playerController;
     this.levelManager = levelManager;
     this.boss = null;
+
+    // Create exclamation point texture
+    this.createExclamationTexture();
+  }
+
+  createExclamationTexture() {
+    if (this.scene.textures.exists("exclamation")) return;
+
+    const canvas = document.createElement("canvas");
+    const size = 32;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    // Pixel art exclamation point
+    ctx.fillStyle = "#ff004d"; // Red color matching game theme
+
+    // Main vertical bar (6 pixels wide, 18 pixels tall)
+    ctx.fillRect(13, 4, 6, 18);
+
+    // Bottom dot (6x6 pixels)
+    ctx.fillRect(13, 24, 6, 6);
+
+    this.scene.textures.addCanvas("exclamation", canvas);
+  }
+
+  showLaneWarning(targetX, callback) {
+    // Create exclamation point sprite at the target lane
+    const warning = this.scene.add.sprite(targetX, 1200, "exclamation");
+    warning.setScale(8); // Scale up for visibility
+    warning.setDepth(150);
+    warning.setAlpha(0);
+
+    // Pulsing animation
+    this.scene.tweens.add({
+      targets: warning,
+      alpha: 1,
+      scale: 10,
+      duration: 300,
+      yoyo: true,
+      repeat: 1,
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        warning.destroy();
+        if (callback) callback();
+      },
+    });
   }
 
   // === WAVE 1 BOSS ===
@@ -208,15 +255,21 @@ export class BossManager {
     currentTime += 2500; // Wait for entrance animation
 
     // Lane attacks - boss stays in place
+    // LEFT LANE WITH WARNING
     this.scene.time.delayedCall(currentTime, () => {
-      this.bossFiresToLaneInPlace(GAME_CONFIG.PLAYER.LEFT_X, 10);
+      this.showLaneWarning(GAME_CONFIG.PLAYER.LEFT_X, () => {
+        this.bossFiresToLaneInPlace(GAME_CONFIG.PLAYER.LEFT_X, 10);
+      });
     });
-    currentTime += 12000;
+    currentTime += 13000; // 1000ms warning + 12000ms attack
 
+    // RIGHT LANE WITH WARNING
     this.scene.time.delayedCall(currentTime, () => {
-      this.bossFiresToLaneInPlace(GAME_CONFIG.PLAYER.RIGHT_X, 10);
+      this.showLaneWarning(GAME_CONFIG.PLAYER.RIGHT_X, () => {
+        this.bossFiresToLaneInPlace(GAME_CONFIG.PLAYER.RIGHT_X, 10);
+      });
     });
-    currentTime += 12000;
+    currentTime += 13000; // 1000ms warning + 12000ms attack
 
     // Final exit at the very end
     this.scene.time.delayedCall(currentTime, () => {
@@ -278,23 +331,26 @@ export class BossManager {
       onComplete: () => {
         this.startHoverAnimation();
 
-        for (let i = 0; i < shotCount; i++) {
-          this.scene.time.delayedCall(i * 1000, () => {
-            this.fireShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
+        // Show warning before firing
+        this.showLaneWarning(targetX, () => {
+          for (let i = 0; i < shotCount; i++) {
+            this.scene.time.delayedCall(i * 1000, () => {
+              this.fireShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
 
-            // Start ball spawning after first shot
-            if (i === 0) {
-              this.scene.time.delayedCall(500, () => {
-                this.startLaneBallSpawning(shotCount * 1000);
-              });
-            }
-          });
-        }
+              // Start ball spawning after first shot
+              if (i === 0) {
+                this.scene.time.delayedCall(500, () => {
+                  this.startLaneBallSpawning(shotCount * 1000);
+                });
+              }
+            });
+          }
 
-        // Exit after all shots
-        this.scene.time.delayedCall(shotCount * 1000 + 1500, () => {
-          this.exitBoss(() => {
-            console.log("Boss exited after lane attack");
+          // Exit after all shots
+          this.scene.time.delayedCall(shotCount * 1000 + 1500, () => {
+            this.exitBoss(() => {
+              console.log("Boss exited after lane attack");
+            });
           });
         });
       },
