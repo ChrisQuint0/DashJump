@@ -437,6 +437,10 @@ export class BossManager {
   }
 
   createBullet(x, y) {
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playPlasmaSound();
+    }
+
     const sprite = this.scene.physics.add.sprite(x, y, "plasma");
     sprite.setScale(4);
     sprite.body.setAllowGravity(false);

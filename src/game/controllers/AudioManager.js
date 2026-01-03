@@ -64,17 +64,171 @@ export class AudioManager {
     }
   }
 
+  playJumpSound() {
+    // Unlock audio first
+    this.unlockAudio();
+
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("jump")) {
+      console.warn("Jump sound not loaded in cache");
+      return;
+    }
+
+    // Play immediately
+    try {
+      this.scene.sound.play("jump", { volume: 0.4 });
+      console.log("Jump sound played");
+    } catch (error) {
+      console.error("Error playing jump sound:", error);
+    }
+  }
+
+  playSpikeSound() {
+    // Unlock audio first
+    this.unlockAudio();
+
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("spike")) {
+      console.warn("Spike sound not loaded in cache");
+      return;
+    }
+
+    // Play immediately
+    try {
+      this.scene.sound.play("spike", { volume: 0.5 });
+      console.log("Spike sound played");
+    } catch (error) {
+      console.error("Error playing spike sound:", error);
+    }
+  }
+
+  playRollSound() {
+    // Unlock audio first
+    this.unlockAudio();
+
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("roll")) {
+      console.warn("Roll sound not loaded in cache");
+      return;
+    }
+
+    // Play immediately
+    try {
+      this.scene.sound.play("roll", { volume: 0.4 });
+      console.log("Roll sound played");
+    } catch (error) {
+      console.error("Error playing roll sound:", error);
+    }
+  }
+
+  playPlasmaSound() {
+    // Unlock audio first
+    this.unlockAudio();
+
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("plasma")) {
+      console.warn("Plasma sound not loaded in cache");
+      return;
+    }
+
+    // Play immediately
+    try {
+      this.scene.sound.play("plasma", { volume: 0.3 });
+      console.log("Plasma sound played");
+    } catch (error) {
+      console.error("Error playing plasma sound:", error);
+    }
+  }
+
+  transitionToBossMusic() {
+    console.log("Transitioning to boss music");
+
+    // Fade out current background music
+    if (this.bgMusic && this.bgMusic.isPlaying) {
+      this.scene.tweens.add({
+        targets: this.bgMusic,
+        volume: 0,
+        duration: 1000,
+        onComplete: () => {
+          this.bgMusic.stop();
+          this.bgMusic.destroy();
+          this.bgMusic = null;
+
+          // Start boss music
+          this.startBossMusic();
+        },
+      });
+    } else {
+      // If no music playing, just start boss music
+      this.startBossMusic();
+    }
+  }
+
+  startBossMusic() {
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("boss")) {
+      console.warn("Boss music not loaded in cache");
+      return;
+    }
+
+    try {
+      this.bgMusic = this.scene.sound.add("boss", {
+        volume: 0,
+        loop: true,
+      });
+
+      this.bgMusic.play();
+      this.isMusicPlaying = true;
+
+      // Fade in boss music
+      this.scene.tweens.add({
+        targets: this.bgMusic,
+        volume: 0.3,
+        duration: 1000,
+      });
+
+      console.log("Boss music started");
+    } catch (error) {
+      console.error("Error starting boss music:", error);
+    }
+  }
+
+  transitionToWaveMusic() {
+    console.log("Transitioning back to wave music");
+
+    // Fade out boss music
+    if (this.bgMusic && this.bgMusic.isPlaying) {
+      this.scene.tweens.add({
+        targets: this.bgMusic,
+        volume: 0,
+        duration: 1000,
+        onComplete: () => {
+          this.bgMusic.stop();
+          this.bgMusic.destroy();
+          this.bgMusic = null;
+
+          // Start wave music again
+          this.startBackgroundMusic();
+        },
+      });
+    } else {
+      // If no music playing, just start wave music
+      this.startBackgroundMusic();
+    }
+  }
+
   startBackgroundMusic() {
     // Unlock audio first
     this.unlockAudio();
 
-    // Don't start if already playing
-    if (this.isMusicPlaying && this.bgMusic && this.bgMusic.isPlaying) {
-      return;
+    // ALWAYS stop existing music first to prevent overlaps
+    if (this.bgMusic) {
+      console.log("Stopping existing music before starting wave music");
+      this.bgMusic.stop();
+      this.bgMusic.destroy();
+      this.bgMusic = null;
+      this.isMusicPlaying = false;
     }
-
-    // Stop existing music if any
-    this.stopBackgroundMusic();
 
     // Check if the sound exists in the cache
     if (!this.scene.cache.audio.exists("wave")) {
@@ -87,13 +241,13 @@ export class AudioManager {
       try {
         // Start new music with 30% volume
         this.bgMusic = this.scene.sound.add("wave", {
-          volume: 0.3, // Changed to 30%
+          volume: 0.3,
           loop: true,
         });
 
         this.bgMusic.play();
         this.isMusicPlaying = true;
-        console.log("Background music started at 50% volume");
+        console.log("Background music started at 30% volume");
       } catch (error) {
         console.error("Error starting background music:", error);
       }

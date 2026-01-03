@@ -423,6 +423,9 @@ export class WaveManager {
             duration: 500,
             onComplete: () => {
               if (spike.active) {
+                if (this.scene.audioManager) {
+                  this.scene.audioManager.playSpikeSound();
+                }
                 spike.body.setAllowGravity(true);
                 spike.setGravityY(4500);
                 trail.start();
@@ -648,6 +651,11 @@ export class WaveManager {
   endWave1() {
     this.isBossActive = true;
 
+    // Transition to boss music
+    if (this.scene.audioManager) {
+      this.scene.audioManager.transitionToBossMusic();
+    }
+
     const warningText = this.scene.add
       .text(540, 960, "You better move,\nhe's aiming.\nDon't get shot.", {
         fontFamily: '"Press Start 2P"',
@@ -677,33 +685,43 @@ export class WaveManager {
 
   endWave2() {
     this.isBossActive = true;
+
+    // Start spike shower first
     this.startSpikeShower();
 
-    this.scene.time.delayedCall(5500, () => {
-      const warningText = this.scene.add
-        .text(540, 960, "He's back...\nAnd he's not\nmissing around.", {
-          fontFamily: '"Press Start 2P"',
-          fontSize: "45px",
-          fill: "#ff004d",
-          align: "center",
-        })
-        .setOrigin(0.5)
-        .setAlpha(0)
-        .setDepth(100);
+    // Wait for spike shower to complete (6500ms) before starting boss music
+    this.scene.time.delayedCall(6500, () => {
+      // NOW transition to boss music after spike shower
+      if (this.scene.audioManager) {
+        this.scene.audioManager.transitionToBossMusic();
+      }
 
-      this.scene.tweens.add({
-        targets: warningText,
-        alpha: 1,
-        duration: 1000,
-        yoyo: true,
-        hold: 2000,
-        onComplete: () => {
-          warningText.destroy();
-          this.levelManager.bossManager.spawnWave2Boss(() => {
-            this.isBossActive = false;
-            this.triggerPreWave3Sequence();
-          });
-        },
+      this.scene.time.delayedCall(1000, () => {
+        const warningText = this.scene.add
+          .text(540, 960, "He's back...\nAnd he's not\nmissing around.", {
+            fontFamily: '"Press Start 2P"',
+            fontSize: "45px",
+            fill: "#ff004d",
+            align: "center",
+          })
+          .setOrigin(0.5)
+          .setAlpha(0)
+          .setDepth(100);
+
+        this.scene.tweens.add({
+          targets: warningText,
+          alpha: 1,
+          duration: 1000,
+          yoyo: true,
+          hold: 2000,
+          onComplete: () => {
+            warningText.destroy();
+            this.levelManager.bossManager.spawnWave2Boss(() => {
+              this.isBossActive = false;
+              this.triggerPreWave3Sequence();
+            });
+          },
+        });
       });
     });
   }
@@ -744,6 +762,12 @@ export class WaveManager {
 
   startWave3BossSequence() {
     console.log("Starting Wave 3 boss sequence");
+
+    // Transition to boss music
+    if (this.scene.audioManager) {
+      this.scene.audioManager.transitionToBossMusic();
+    }
+
     this.startSpikeShower();
 
     this.scene.time.delayedCall(7000, () => {
@@ -806,6 +830,26 @@ export class WaveManager {
   // === POST-WAVE SEQUENCES ===
 
   triggerPostBossSequence() {
+    // Fade out boss music to silence (don't start wave music yet)
+    if (this.scene.audioManager) {
+      if (
+        this.scene.audioManager.bgMusic &&
+        this.scene.audioManager.bgMusic.isPlaying
+      ) {
+        this.scene.tweens.add({
+          targets: this.scene.audioManager.bgMusic,
+          volume: 0,
+          duration: 1000,
+          onComplete: () => {
+            this.scene.audioManager.bgMusic.stop();
+            this.scene.audioManager.bgMusic.destroy();
+            this.scene.audioManager.bgMusic = null;
+            this.scene.audioManager.isMusicPlaying = false;
+          },
+        });
+      }
+    }
+
     const postBossLines = [
       "There you are, little dasher.",
       "You jump. You dash. You avoid.",
@@ -823,6 +867,11 @@ export class WaveManager {
     this.scene.dialogueManager.dialogueIndex = 0;
 
     this.scene.dialogueManager.showIntroduction(() => {
+      // Start wave music AFTER dialogue finishes
+      if (this.scene.audioManager) {
+        this.scene.audioManager.startBackgroundMusic();
+      }
+
       this.levelManager.restoreHealth();
       this.scene.displayWaveText("SECOND WAVE", () => {
         this.levelManager.startLevel(60, 2);
@@ -831,6 +880,26 @@ export class WaveManager {
   }
 
   triggerPreWave3Sequence() {
+    // Fade out boss music to silence (don't start wave music yet)
+    if (this.scene.audioManager) {
+      if (
+        this.scene.audioManager.bgMusic &&
+        this.scene.audioManager.bgMusic.isPlaying
+      ) {
+        this.scene.tweens.add({
+          targets: this.scene.audioManager.bgMusic,
+          volume: 0,
+          duration: 1000,
+          onComplete: () => {
+            this.scene.audioManager.bgMusic.stop();
+            this.scene.audioManager.bgMusic.destroy();
+            this.scene.audioManager.bgMusic = null;
+            this.scene.audioManager.isMusicPlaying = false;
+          },
+        });
+      }
+    }
+
     const preWave3Lines = [
       "Here we are again.",
       "You think you're choosing to jump, to dash.",
@@ -848,6 +917,11 @@ export class WaveManager {
     this.scene.dialogueManager.dialogueIndex = 0;
 
     this.scene.dialogueManager.showIntroduction(() => {
+      // Start wave music AFTER dialogue finishes
+      if (this.scene.audioManager) {
+        this.scene.audioManager.startBackgroundMusic();
+      }
+
       this.levelManager.restoreHealth();
       this.scene.displayWaveText("THIRD WAVE", () => {
         this.levelManager.startLevel(120, 3);

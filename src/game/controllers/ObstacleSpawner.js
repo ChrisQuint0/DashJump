@@ -43,6 +43,11 @@ export class ObstacleSpawner {
       duration: 800 / this.difficultyMultiplier,
       onComplete: () => {
         if (spike.active) {
+          // Play spike sound when it starts falling (after warning phase)
+          if (this.scene.audioManager) {
+            this.scene.audioManager.playSpikeSound();
+          }
+
           spike.body.setAllowGravity(true);
           spike.setGravityY(4000 * this.difficultyMultiplier);
           trail.start();
@@ -69,6 +74,10 @@ export class ObstacleSpawner {
       duration: 500,
       onComplete: () => {
         if (spike.active) {
+          if (this.scene.audioManager) {
+            this.scene.audioManager.playSpikeSound();
+          }
+
           spike.body.setAllowGravity(true);
           spike.setGravityY(4500);
           trail.start();
@@ -93,6 +102,10 @@ export class ObstacleSpawner {
       duration: 400,
       onComplete: () => {
         if (spike.active) {
+          if (this.scene.audioManager) {
+            this.scene.audioManager.playSpikeSound();
+          }
+
           spike.body.setAllowGravity(true);
           spike.setGravityY(5000);
           trail.start();
@@ -148,6 +161,10 @@ export class ObstacleSpawner {
     ball.setDepth(5);
     ball.body.setAllowGravity(false);
     ball.setVelocityX(velocity);
+
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playRollSound();
+    }
 
     this.activeBall = ball;
 

@@ -21,6 +21,11 @@ export class PlayerController {
   jump() {
     if (!this.isGrounded()) return;
 
+    // Play jump sound
+    if (this.scene.audioManager) {
+      this.scene.audioManager.playJumpSound();
+    }
+
     this.player.setVelocityY(GAME_CONFIG.MOVEMENT.JUMP_VELOCITY);
     this.particleEffects.playJumpEffect();
   }

@@ -18,7 +18,7 @@ import { AudioManager } from "../controllers/AudioManager";
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip tutorial, dialogue, and wave 1
 const DEV_MODE = false;
-const DEV_START_WAVE = 3; // Which wave to start on
+const DEV_START_WAVE = 2; // Which wave to start on
 // ============================
 
 export class Game extends Scene {
@@ -100,6 +100,12 @@ export class Game extends Scene {
     // Store the current wave before game over
     const currentWave = this.levelManager?.currentWave || 1;
     this.registry.set("restartWave", currentWave);
+
+    // Stop all music immediately
+    if (this.audioManager) {
+      console.log("Stopping all music on game over");
+      this.audioManager.stopBackgroundMusic();
+    }
 
     // Stop all game activity IMMEDIATELY
     if (this.levelManager) {
