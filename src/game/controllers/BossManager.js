@@ -9,7 +9,10 @@ export class BossManager {
     this.levelManager = levelManager;
     this.boss = null;
 
-    // Create exclamation point texture
+    // Track active bullets to prevent overflow
+    this.activeBullets = [];
+    this.maxBullets = this.levelManager?.currentWave === 3 ? 5 : 10;
+
     this.createExclamationTexture();
   }
 
@@ -404,12 +407,58 @@ export class BossManager {
   // === SHOOTING HELPERS ===
 
   fireTrackedShot(shotNumber) {
+    // Clean up off-screen bullets first
+    this.cleanupBullets();
+
+    // Limit active bullets in Wave 3
+    if (
+      this.levelManager.currentWave === 3 &&
+      this.activeBullets.length >= this.maxBullets
+    ) {
+      // Destroy oldest bullet to make room
+      const oldest = this.activeBullets.shift();
+      if (oldest.sprite && oldest.sprite.active) {
+        oldest.sprite.destroy();
+      }
+      if (oldest.emitter && oldest.emitter.destroy) {
+        oldest.emitter.destroy();
+      }
+    }
+
     const targetX = this.playerController.player.x;
     const targetY = this.playerController.player.y;
 
     const bullet = this.createBullet(this.boss.x, this.boss.y);
     this.scene.physics.moveTo(bullet.sprite, targetX, targetY, 1800);
     this.setupBulletCollision(bullet.sprite, bullet.emitter);
+
+    // Track this bullet
+    this.activeBullets.push(bullet);
+  }
+
+  cleanupBullets() {
+    this.activeBullets = this.activeBullets.filter((bullet) => {
+      // Remove if sprite is destroyed or off-screen
+      if (!bullet.sprite || !bullet.sprite.active) {
+        return false;
+      }
+
+      const sprite = bullet.sprite;
+      if (
+        sprite.y > 2000 ||
+        sprite.y < -500 ||
+        sprite.x < -500 ||
+        sprite.x > 1600
+      ) {
+        sprite.destroy();
+        if (bullet.emitter && bullet.emitter.destroy) {
+          bullet.emitter.destroy();
+        }
+        return false;
+      }
+
+      return true;
+    });
   }
 
   fireShotToPosition(targetX, targetY) {
@@ -429,14 +478,25 @@ export class BossManager {
     sprite.setScale(4);
     sprite.body.setAllowGravity(false);
 
-    const emitter = this.scene.add.particles(0, 0, "plasma", {
-      speed: 20,
-      scale: { start: 0.8, end: 0 },
-      alpha: { start: 0.5, end: 0 },
-      lifespan: 500,
-      follow: sprite,
-      blendMode: "ADD",
-    });
+    // CRITICAL FIX: Disable particle emitters in Wave 3 for performance
+    let emitter = null;
+
+    if (this.levelManager.currentWave !== 3) {
+      // Only create particle trails in Wave 1 and 2
+      emitter = this.scene.add.particles(0, 0, "plasma", {
+        speed: 20,
+        scale: { start: 0.8, end: 0 },
+        alpha: { start: 0.5, end: 0 },
+        lifespan: 500,
+        follow: sprite,
+        blendMode: "ADD",
+      });
+    } else {
+      // Wave 3: Create a dummy emitter object to prevent crashes
+      emitter = {
+        destroy: () => {},
+      };
+    }
 
     return { sprite, emitter };
   }
@@ -445,7 +505,14 @@ export class BossManager {
     this.scene.physics.add.overlap(this.playerController.player, bullet, () => {
       this.scene.updateLives();
       bullet.destroy();
-      emitter.destroy();
+      if (emitter && emitter.destroy) {
+        emitter.destroy();
+      }
+
+      // Remove from tracking
+      this.activeBullets = this.activeBullets.filter(
+        (b) => b.sprite !== bullet
+      );
     });
   }
 
