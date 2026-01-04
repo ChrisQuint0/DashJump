@@ -41,6 +41,7 @@ export class Game extends Scene {
     this.lives = GAME_CONFIG.PLAYER.MAX_LIVES;
 
     this.setupManagers();
+    this.setupPhysicsOptimizations();
     this.backgroundManager.setup();
     this.setupGround();
 
@@ -144,6 +145,14 @@ export class Game extends Scene {
     this.dialogueManager = new DialogueManager(this);
     this.gameOverManager = new GameOverManager(this);
     this.endingScreenManager = new EndingScreenManager(this);
+  }
+
+  setupPhysicsOptimizations() {
+    // Reduce particle frequency during gameplay
+    this.physics.world.fps = 60;
+
+    // Disable quadtree for simpler collision in this game
+    this.physics.world.useTree = false;
   }
 
   setupTitleScreen() {

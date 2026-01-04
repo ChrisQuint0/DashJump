@@ -117,4 +117,20 @@ export class ParticleEffects {
   stopDash() {
     this.emitter.stop();
   }
+
+  reduceParticleQuality() {
+    // Reduce particle emission to improve performance
+    if (this.emitter) {
+      this.emitter.frequency = 20; // Increase from 10
+      this.emitter.quantity = 1; // Reduce from 2
+    }
+  }
+
+  restoreParticleQuality() {
+    // Restore normal particle emission
+    if (this.emitter) {
+      this.emitter.frequency = 10;
+      this.emitter.quantity = 2;
+    }
+  }
 }

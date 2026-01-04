@@ -191,6 +191,8 @@ export class ObstacleSpawner {
 
   // === WEAVE SPAWNING (Wave 2) ===
 
+  // === WEAVE SPAWNING (OPTIMIZED FOR PERFORMANCE) ===
+
   spawnWeave() {
     if (this.activeWeave || this.activeBall || this.activeSpike) return;
 
@@ -202,23 +204,29 @@ export class ObstacleSpawner {
 
     this.activeWeave = weave;
 
-    // Sine wave motion
+    // OPTIMIZED: Use a simpler sine wave calculation
+    // Store the start time once instead of calculating repeatedly
+    const startTime = this.scene.time.now;
+
+    // OPTIMIZED: Reduce frequency of updates (32ms instead of 16ms)
     const weaveMotion = this.scene.time.addEvent({
-      delay: 16,
+      delay: 32, // Changed from 16ms to 32ms (still smooth but half the calculations)
       callback: () => {
         if (!weave.active) {
           weaveMotion.remove();
           return;
         }
-        const offset = Math.sin(this.scene.time.now / 300) * 250;
+        // Simpler calculation with pre-calculated values
+        const elapsed = this.scene.time.now - startTime;
+        const offset = Math.sin(elapsed * 0.003) * 250; // Pre-multiplied constant
         weave.x = 540 + offset;
       },
       loop: true,
     });
 
-    // Exit check
+    // OPTIMIZED: Check exit less frequently (150ms instead of 100ms)
     const exitCheck = this.scene.time.addEvent({
-      delay: 100,
+      delay: 150, // Changed from 100ms to 150ms
       callback: () => {
         if (weave.active && weave.y > 2000) {
           weave.destroy();
@@ -226,7 +234,6 @@ export class ObstacleSpawner {
           weaveMotion.remove();
           exitCheck.remove();
 
-          // Return callback to trigger mini shower
           return { exited: true };
         } else if (!weave.active) {
           this.activeWeave = null;

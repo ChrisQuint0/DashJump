@@ -512,20 +512,14 @@ export class WaveManager {
     // Spawn first weave immediately
     this.spawnWeaveForWave3();
 
-    // Keep spawning weaves until level ends
+    // OPTIMIZED: Check less frequently (200ms instead of 100ms)
+    // and with simpler logic
     this.wave3WeaveInterval = this.scene.time.addEvent({
-      delay: 100,
+      delay: 200, // Changed from 100ms to 200ms
       callback: () => {
-        const currentWeave = this.obstacleSpawner.activeWeave;
-
-        // If no active weave and level is still active, spawn a new one
-        if (!currentWeave && this.levelManager.isActive) {
+        // Simple check: if no active weave, spawn one
+        if (!this.obstacleSpawner.activeWeave && this.levelManager.isActive) {
           this.spawnWeaveForWave3();
-        }
-
-        // Stop checking when level is inactive
-        if (!this.levelManager.isActive) {
-          this.stopWave3WeaveSpawning();
         }
       },
       loop: true,
@@ -536,7 +530,7 @@ export class WaveManager {
     if (this.obstacleSpawner.activeWeave) return;
 
     console.log("Spawning weave for Wave 3");
-    const weaveData = this.obstacleSpawner.spawnWeave();
+    this.obstacleSpawner.spawnWeave();
   }
 
   stopWave3WeaveSpawning() {
@@ -553,6 +547,12 @@ export class WaveManager {
 
   startWave3Sequence() {
     console.log("Starting Wave 3 scripted sequence");
+
+    // Reduce particle effects for better performance
+    if (this.scene.particleEffects) {
+      this.scene.particleEffects.reduceParticleQuality();
+    }
+
     let currentTime = 0;
 
     const scheduleEvent = (callback, delay) => {
@@ -728,6 +728,11 @@ export class WaveManager {
 
   endWave3() {
     this.isBossActive = true;
+
+    // Reduce particle effects for better performance
+    if (this.scene.particleEffects) {
+      this.scene.particleEffects.reduceParticleQuality();
+    }
 
     // Stop spawning NEW weaves, but let active one finish
     if (this.wave3WeaveInterval) {
