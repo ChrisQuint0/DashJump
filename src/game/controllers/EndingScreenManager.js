@@ -173,6 +173,12 @@ export class EndingScreenManager {
   }
 
   returnToTitle() {
+    // Stop all music immediately when returning to title
+    if (this.scene.audioManager) {
+      console.log("Stopping all music on return to title");
+      this.scene.audioManager.stopBackgroundMusic();
+    }
+
     this.scene.cameras.main.fadeOut(1000, 0, 0, 0);
 
     this.scene.time.delayedCall(1000, () => {

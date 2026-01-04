@@ -254,6 +254,43 @@ export class AudioManager {
     });
   }
 
+  startEndingMusic() {
+    // Unlock audio first
+    this.unlockAudio();
+
+    // Stop any existing music first
+    if (this.bgMusic) {
+      console.log("Stopping existing music before starting ending music");
+      this.bgMusic.stop();
+      this.bgMusic.destroy();
+      this.bgMusic = null;
+      this.isMusicPlaying = false;
+    }
+
+    // Check if the sound exists in the cache
+    if (!this.scene.cache.audio.exists("end")) {
+      console.warn("Ending music not loaded in cache");
+      return;
+    }
+
+    // Small delay to ensure audio context is ready
+    this.scene.time.delayedCall(50, () => {
+      try {
+        // Start ending music with 30% volume
+        this.bgMusic = this.scene.sound.add("end", {
+          volume: 0.3,
+          loop: true,
+        });
+
+        this.bgMusic.play();
+        this.isMusicPlaying = true;
+        console.log("Ending music started at 30% volume");
+      } catch (error) {
+        console.error("Error starting ending music:", error);
+      }
+    });
+  }
+
   stopBackgroundMusic() {
     if (this.bgMusic) {
       this.bgMusic.stop();

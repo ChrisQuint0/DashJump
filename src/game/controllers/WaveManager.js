@@ -798,7 +798,32 @@ export class WaveManager {
 
   // === ENDING SEQUENCE ===
 
+  // src/game/controllers/WaveManager.js - EXCERPT showing the ending sequence changes
+
+  // This is the complete triggerEndingSequence method that needs to replace the existing one
+
   triggerEndingSequence() {
+    // Fade out boss music to silence
+    if (this.scene.audioManager) {
+      if (
+        this.scene.audioManager.bgMusic &&
+        this.scene.audioManager.bgMusic.isPlaying
+      ) {
+        this.scene.tweens.add({
+          targets: this.scene.audioManager.bgMusic,
+          volume: 0,
+          duration: 1000,
+          onComplete: () => {
+            this.scene.audioManager.bgMusic.stop();
+            this.scene.audioManager.bgMusic.destroy();
+            this.scene.audioManager.bgMusic = null;
+            this.scene.audioManager.isMusicPlaying = false;
+            console.log("Boss music faded out to silence");
+          },
+        });
+      }
+    }
+
     const endingLines = [
       "And here we are.",
       "The end.",
@@ -822,6 +847,11 @@ export class WaveManager {
     this.scene.dialogueManager.dialogueIndex = 0;
 
     this.scene.dialogueManager.showIntroduction(() => {
+      // Start ending music AFTER dialogue finishes
+      if (this.scene.audioManager) {
+        this.scene.audioManager.startEndingMusic();
+      }
+
       console.log("Game complete! Showing ending screen...");
       this.scene.endingScreenManager.show();
     });
