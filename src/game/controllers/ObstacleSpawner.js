@@ -135,15 +135,9 @@ export class ObstacleSpawner {
 
   spawnBall() {
     if (this.activeBall || this.activeSpike || this.activeWeave) {
-      console.log("Ball spawn blocked - obstacles active:", {
-        ball: !!this.activeBall,
-        spike: !!this.activeSpike,
-        weave: !!this.activeWeave,
-      });
       return;
     }
 
-    console.log("Spawning ball");
     const playerX = this.playerController.player.x;
     const isPlayerOnRight = playerX > 540;
     const spawnFromRight = !isPlayerOnRight;

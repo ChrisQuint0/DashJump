@@ -85,11 +85,6 @@ export class Boot extends Scene {
       percentText.destroy();
       assetText.destroy();
       loadingText.destroy();
-
-      // Debug: Check if audio files loaded
-      console.log("Audio files loaded:");
-      console.log("- click:", this.cache.audio.exists("click"));
-      console.log("- wave:", this.cache.audio.exists("wave"));
     });
 
     // Load the font first

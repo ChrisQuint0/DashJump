@@ -139,14 +139,12 @@ export class WaveManager {
     // Note: For Wave 1, this spawns a ball after. For Wave 2, handled by sequence.
     this.scene.time.delayedCall(1500, () => {
       if (this.levelManager.isActive && this.levelManager.currentWave === 1) {
-        console.log("Mini shower complete - spawning ball");
         this.obstacleSpawner.spawnBall();
       }
     });
   }
 
   startSpikeShower() {
-    console.log("Starting spike shower!");
     this.isSpikeShowerMode = true;
 
     const sequence = [
@@ -164,26 +162,20 @@ export class WaveManager {
 
     sequence.forEach((spike) => {
       this.scene.time.delayedCall(spike.delay, () => {
-        console.log(`Spawning shower spike at ${spike.x}`);
         this.obstacleSpawner.spawnShowerSpike(spike.x);
       });
     });
 
-    this.scene.time.delayedCall(6000, () => {
-      console.log("Spike shower complete");
-    });
+    this.scene.time.delayedCall(6000, () => {});
 
     this.scene.time.delayedCall(6500, () => {
       this.isSpikeShowerMode = false;
-      console.log("Spike shower mode ended");
     });
   }
 
   // === WAVE 2 SCRIPTED SEQUENCE ===
 
   startWave2Sequence() {
-    console.log("Starting Wave 2 scripted sequence");
-
     // Initialize shower tracking flag
     this.isShowerActive = false;
 
@@ -227,24 +219,16 @@ export class WaveManager {
 
   processNextWave2Step() {
     if (!this.levelManager.isActive) {
-      console.log("⚠️ Level not active, stopping sequence");
       return;
     }
 
     if (this.wave2SequenceIndex >= this.wave2Sequence.length) {
-      console.log(
-        "✅ Wave 2 sequence complete (all steps done), triggering boss"
-      );
       this.levelManager.stopLevel();
       return;
     }
 
     const step = this.wave2Sequence[this.wave2SequenceIndex];
-    console.log(
-      `📍 Wave 2 step ${this.wave2SequenceIndex + 1}/${
-        this.wave2Sequence.length
-      }: ${step.type}`
-    );
+
     this.wave2SequenceIndex++;
 
     switch (step.type) {
@@ -271,7 +255,6 @@ export class WaveManager {
       this.obstacleSpawner.activeWeave ||
       this.isShowerActive
     ) {
-      console.log("Cannot spawn spike - other obstacles active, waiting...");
       this.scene.time.delayedCall(200, () => {
         this.wave2SequenceIndex--;
         this.processNextWave2Step();
@@ -303,7 +286,6 @@ export class WaveManager {
       this.obstacleSpawner.activeWeave ||
       this.isShowerActive
     ) {
-      console.log("Cannot spawn ball - other obstacles active, waiting...");
       this.scene.time.delayedCall(200, () => {
         this.wave2SequenceIndex--;
         this.processNextWave2Step();
@@ -335,7 +317,6 @@ export class WaveManager {
       this.obstacleSpawner.activeWeave ||
       this.isShowerActive
     ) {
-      console.log("Cannot spawn weave - other obstacles active, waiting...");
       // Wait a bit and try again
       this.scene.time.delayedCall(200, () => {
         // Retry this same step (don't increment index)
@@ -369,15 +350,6 @@ export class WaveManager {
       this.obstacleSpawner.activeWeave ||
       this.isShowerActive
     ) {
-      console.log(
-        "❌ Cannot spawn mini shower - waiting for obstacles to clear...",
-        {
-          spike: !!this.obstacleSpawner.activeSpike,
-          ball: !!this.obstacleSpawner.activeBall,
-          weave: !!this.obstacleSpawner.activeWeave,
-          shower: this.isShowerActive,
-        }
-      );
       this.scene.time.delayedCall(200, () => {
         this.wave2SequenceIndex--;
         this.processNextWave2Step();
@@ -385,7 +357,6 @@ export class WaveManager {
       return;
     }
 
-    console.log("✅ Starting mini shower");
     // Mark shower as active IMMEDIATELY
     this.isShowerActive = true;
 
@@ -401,9 +372,6 @@ export class WaveManager {
     sequence.forEach((spikeData, index) => {
       this.scene.time.delayedCall(spikeData.delay, () => {
         if (this.levelManager.isActive && this.isShowerActive) {
-          console.log(
-            `  🔸 Spawning shower spike ${index + 1}/3 at x=${spikeData.x}`
-          );
           // Spawn lane spike and track it
           const spike = this.scene.physics.add.sprite(
             spikeData.x,
@@ -453,13 +421,11 @@ export class WaveManager {
         );
 
         if (allCleared) {
-          console.log("✅ Mini shower complete - all spikes cleared");
           checkInterval.remove();
           this.miniShowerSpikes = [];
           this.isShowerActive = false; // Mark shower as complete
           // Small delay before next obstacle
           this.scene.time.delayedCall(500, () => {
-            console.log("⏭️ Proceeding to next sequence step");
             this.processNextWave2Step();
           });
         }
@@ -507,8 +473,6 @@ export class WaveManager {
   // === WAVE 3 CONTINUOUS WEAVE SPAWNING ===
 
   startWave3WeaveSpawning() {
-    console.log("Starting continuous weave spawning for Wave 3 fill");
-
     // Spawn first weave immediately
     this.spawnWeaveForWave3();
 
@@ -529,7 +493,6 @@ export class WaveManager {
   spawnWeaveForWave3() {
     if (this.obstacleSpawner.activeWeave) return;
 
-    console.log("Spawning weave for Wave 3");
     this.obstacleSpawner.spawnWeave();
   }
 
@@ -537,7 +500,6 @@ export class WaveManager {
     if (this.wave3WeaveInterval) {
       this.wave3WeaveInterval.remove();
       this.wave3WeaveInterval = null;
-      console.log("Stopped Wave 3 weave spawning");
     }
     // Note: We don't destroy the active weave here anymore
     // Let it exit naturally
@@ -546,8 +508,6 @@ export class WaveManager {
   // === WAVE 3 SCRIPTED SEQUENCE ===
 
   startWave3Sequence() {
-    console.log("Starting Wave 3 scripted sequence");
-
     // Reduce particle effects for better performance
     if (this.scene.particleEffects) {
       this.scene.particleEffects.reduceParticleQuality();
@@ -619,18 +579,14 @@ export class WaveManager {
 
     // === DEDICATED WEAVE SECTION ===
     // Weaves spawn continuously for 30 seconds
-    console.log(`Starting weave section at ${currentTime}ms`);
 
     scheduleEvent(() => this.startWave3WeaveSpawning(), 0);
 
     // Let weaves run for 30 seconds
     scheduleEvent(() => {}, 30000);
 
-    console.log(`Wave 3 sequence ends at: ${currentTime}ms`);
-
     // Trigger boss at the end of the sequence
     scheduleEvent(() => {
-      console.log("Wave 3 scripted sequence complete, triggering boss");
       this.stopWave3WeaveSpawning();
       this.levelManager.stopLevel();
     }, 0);
@@ -738,20 +694,16 @@ export class WaveManager {
     if (this.wave3WeaveInterval) {
       this.wave3WeaveInterval.remove();
       this.wave3WeaveInterval = null;
-      console.log("Stopped Wave 3 weave spawning interval");
     }
 
     // Check if there's an active weave
     if (this.obstacleSpawner.activeWeave) {
-      console.log("Waiting for active weave to exit before boss sequence");
-
       // Wait for the weave to exit naturally
       const waitForWeaveExit = this.scene.time.addEvent({
         delay: 100,
         callback: () => {
           if (!this.obstacleSpawner.activeWeave) {
             // Weave has exited, now start boss sequence
-            console.log("Weave has exited, starting boss sequence now");
             waitForWeaveExit.remove();
             this.startWave3BossSequence();
           }
@@ -760,14 +712,11 @@ export class WaveManager {
       });
     } else {
       // No active weave, start boss sequence immediately
-      console.log("No active weave, starting boss sequence immediately");
       this.startWave3BossSequence();
     }
   }
 
   startWave3BossSequence() {
-    console.log("Starting Wave 3 boss sequence");
-
     // Transition to boss music
     if (this.scene.audioManager) {
       this.scene.audioManager.transitionToBossMusic();
@@ -823,7 +772,6 @@ export class WaveManager {
             this.scene.audioManager.bgMusic.destroy();
             this.scene.audioManager.bgMusic = null;
             this.scene.audioManager.isMusicPlaying = false;
-            console.log("Boss music faded out to silence");
           },
         });
       }
@@ -857,7 +805,6 @@ export class WaveManager {
         this.scene.audioManager.startEndingMusic();
       }
 
-      console.log("Game complete! Showing ending screen...");
       this.scene.endingScreenManager.show();
     });
   }

@@ -200,9 +200,7 @@ export class BossManager {
     // Boss exits after first barrage
     this.scene.time.delayedCall(currentTime + 500, () => {
       this.stopBallSpawning();
-      this.exitBoss(() => {
-        console.log("Boss exited after first barrage");
-      });
+      this.exitBoss(() => {});
     });
     currentTime += 2500; // Wait for exit animation
 
@@ -236,9 +234,7 @@ export class BossManager {
     // Boss exits after second barrage
     this.scene.time.delayedCall(currentTime + 500, () => {
       this.stopBallSpawning();
-      this.exitBoss(() => {
-        console.log("Boss exited after second barrage");
-      });
+      this.exitBoss(() => {});
     });
     currentTime += 2500; // Wait for exit animation
 
@@ -274,7 +270,6 @@ export class BossManager {
     // Final exit at the very end
     this.scene.time.delayedCall(currentTime, () => {
       this.exitBoss(() => {
-        console.log("Wave 3 complete! Triggering ending sequence...");
         // Trigger the ending dialogue
         this.levelManager.waveManager.triggerEndingSequence();
       });
@@ -317,8 +312,6 @@ export class BossManager {
 
   // Used in Wave 3 scripted sequence - boss enters, fires, exits
   bossFiresToLaneWithEntryExit(targetX, shotCount) {
-    console.log(`Boss entering to fire ${shotCount} shots to lane ${targetX}`);
-
     this.boss = this.scene.add.sprite(540, -300, "shootingBoss");
     this.boss.setScale(30);
     this.boss.setDepth(10);
@@ -348,9 +341,7 @@ export class BossManager {
 
           // Exit after all shots
           this.scene.time.delayedCall(shotCount * 1000 + 1500, () => {
-            this.exitBoss(() => {
-              console.log("Boss exited after lane attack");
-            });
+            this.exitBoss(() => {});
           });
         });
       },
@@ -359,8 +350,6 @@ export class BossManager {
 
   // Used in final boss sequence - boss is already on screen, just fires
   bossFiresToLaneInPlace(targetX, shotCount) {
-    console.log(`Boss firing ${shotCount} shots to lane ${targetX}`);
-
     for (let i = 0; i < shotCount; i++) {
       this.scene.time.delayedCall(i * 1000, () => {
         this.fireShotToPosition(targetX, GAME_CONFIG.GROUND.Y - 50);
@@ -377,8 +366,6 @@ export class BossManager {
 
   // Spawns balls continuously during lane attack sequences
   startLaneBallSpawning(duration) {
-    console.log(`Starting lane ball spawning for ${duration}ms`);
-
     // Spawn first ball immediately
     this.levelManager.obstacleSpawner.spawnBall();
 
@@ -406,7 +393,6 @@ export class BossManager {
     if (this.laneBallInterval) {
       this.laneBallInterval.remove();
       this.laneBallInterval = null;
-      console.log("Stopped lane ball spawning");
     }
     // Destroy any active ball
     if (this.levelManager.obstacleSpawner.activeBall) {
@@ -418,8 +404,6 @@ export class BossManager {
   // === SHOOTING HELPERS ===
 
   fireTrackedShot(shotNumber) {
-    console.log(`Boss firing tracked shot ${shotNumber + 1}`);
-
     const targetX = this.playerController.player.x;
     const targetY = this.playerController.player.y;
 

@@ -11,8 +11,6 @@ export class EndingScreenManager {
     completionCount++;
     this.scene.registry.set("completionCount", completionCount);
 
-    console.log(`Game completed ${completionCount} time(s)`);
-
     // Determine which puppy to show (cycle through 1, 2, 3)
     const puppyNumber = ((completionCount - 1) % 3) + 1;
     const puppyImage =
@@ -175,7 +173,6 @@ export class EndingScreenManager {
   returnToTitle() {
     // Stop all music immediately when returning to title
     if (this.scene.audioManager) {
-      console.log("Stopping all music on return to title");
       this.scene.audioManager.stopBackgroundMusic();
     }
 

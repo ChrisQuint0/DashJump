@@ -104,7 +104,6 @@ export class Game extends Scene {
 
     // Stop all music immediately
     if (this.audioManager) {
-      console.log("Stopping all music on game over");
       this.audioManager.stopBackgroundMusic();
     }
 
@@ -224,7 +223,6 @@ export class Game extends Scene {
   setupTutorial() {
     // ===== DEV MODE SHORTCUT =====
     if (DEV_MODE) {
-      console.log(`🔧 DEV MODE: Skipping to Wave ${DEV_START_WAVE}`);
       this.registry.set("tutorialCompleted", true);
       this.time.delayedCall(500, () => {
         let waveName = " ";
@@ -249,7 +247,6 @@ export class Game extends Scene {
 
     if (restartWave && restartWave > 1) {
       // Player died and needs to restart at their current wave
-      console.log(`Restarting at Wave ${restartWave}`);
 
       let waveName = "";
       if (restartWave === 2) {
@@ -279,7 +276,6 @@ export class Game extends Scene {
       if (this.registry.get("skipDialogue")) {
         this.registry.set("skipDialogue", false);
         this.time.delayedCall(500, () => {
-          console.log("Skipping dialogue, starting level directly.");
           this.displayWaveText("FIRST WAVE", () => {
             this.levelManager.startLevel(60);
           });
