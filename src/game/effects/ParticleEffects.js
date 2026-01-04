@@ -1,4 +1,4 @@
-// src/game/effects/ParticleEffects.js
+// src/game/effects/ParticleEffects.js - OPTIMIZED VERSION
 
 import { GAME_CONFIG } from "../config/GameConfig";
 
@@ -7,6 +7,11 @@ export class ParticleEffects {
     this.scene = scene;
     this.player = player;
     this.createEmitter();
+
+    // Store original values for restoration
+    this.originalFrequency = GAME_CONFIG.PARTICLES.DASH.FREQUENCY;
+    this.originalQuantity = GAME_CONFIG.PARTICLES.DASH.QUANTITY;
+    this.isReduced = false;
   }
 
   static createSpeedLineTexture(scene) {
@@ -119,18 +124,33 @@ export class ParticleEffects {
   }
 
   reduceParticleQuality() {
+    // Only reduce if not already reduced
+    if (this.isReduced || !this.emitter) return;
+
     // Reduce particle emission to improve performance
-    if (this.emitter) {
-      this.emitter.frequency = 20; // Increase from 10
-      this.emitter.quantity = 1; // Reduce from 2
-    }
+    // With your config (frequency: 8, quantity: 2):
+    // - New frequency: 16 (emit half as often)
+    // - New quantity: 1 (spawn half as many particles)
+    this.emitter.frequency = this.originalFrequency * 2;
+    this.emitter.quantity = Math.max(1, Math.floor(this.originalQuantity / 2));
+
+    this.isReduced = true;
+
+    console.log(
+      `Particles reduced: frequency ${this.originalFrequency}→${this.emitter.frequency}, quantity ${this.originalQuantity}→${this.emitter.quantity}`
+    );
   }
 
   restoreParticleQuality() {
+    // Only restore if currently reduced
+    if (!this.isReduced || !this.emitter) return;
+
     // Restore normal particle emission
-    if (this.emitter) {
-      this.emitter.frequency = 10;
-      this.emitter.quantity = 2;
-    }
+    this.emitter.frequency = this.originalFrequency;
+    this.emitter.quantity = this.originalQuantity;
+
+    this.isReduced = false;
+
+    console.log("Particle quality restored");
   }
 }

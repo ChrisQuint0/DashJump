@@ -117,6 +117,15 @@ export class ObstacleSpawner {
   }
 
   createSpikeTrail(spike) {
+    // Skip trail creation in Wave 3 for better performance
+    if (this.levelManager.currentWave === 3) {
+      return {
+        start: () => {},
+        stop: () => {},
+        destroy: () => {},
+      };
+    }
+
     const trail = this.scene.add.particles(0, 0, "speedLine", {
       follow: spike,
       scale: { start: 6, end: 1 },
@@ -130,7 +139,6 @@ export class ObstacleSpawner {
     spike.on("destroy", () => trail.destroy());
     return trail;
   }
-
   // === BALL SPAWNING ===
 
   spawnBall() {
@@ -198,43 +206,46 @@ export class ObstacleSpawner {
 
     this.activeWeave = weave;
 
-    // OPTIMIZED: Use a simpler sine wave calculation
-    // Store the start time once instead of calculating repeatedly
+    // OPTIMIZATION 1: Pre-calculate values once
     const startTime = this.scene.time.now;
+    const amplitude = 250;
+    const frequency = 0.003;
+    const centerX = 540;
 
-    // OPTIMIZED: Reduce frequency of updates (32ms instead of 16ms)
+    // OPTIMIZATION 2: Reduced update frequency from 32ms to 50ms
+    // This reduces calculations by 36% with minimal visual impact
     const weaveMotion = this.scene.time.addEvent({
-      delay: 32, // Changed from 16ms to 32ms (still smooth but half the calculations)
+      delay: 50, // Changed from 32ms to 50ms
       callback: () => {
         if (!weave.active) {
           weaveMotion.remove();
           return;
         }
-        // Simpler calculation with pre-calculated values
+
         const elapsed = this.scene.time.now - startTime;
-        const offset = Math.sin(elapsed * 0.003) * 250; // Pre-multiplied constant
-        weave.x = 540 + offset;
+        const offset = Math.sin(elapsed * frequency) * amplitude;
+        weave.x = centerX + offset;
       },
       loop: true,
     });
 
-    // OPTIMIZED: Check exit less frequently (150ms instead of 100ms)
+    // OPTIMIZATION 3: Increased exit check from 150ms to 250ms
+    // This reduces checks by 40% while still catching exits promptly
     const exitCheck = this.scene.time.addEvent({
-      delay: 150, // Changed from 100ms to 150ms
+      delay: 250, // Changed from 150ms to 250ms
       callback: () => {
-        if (weave.active && weave.y > 2000) {
+        if (!weave.active) {
+          this.activeWeave = null;
+          weaveMotion.remove();
+          exitCheck.remove();
+          return;
+        }
+
+        if (weave.y > 2000) {
           weave.destroy();
           this.activeWeave = null;
           weaveMotion.remove();
           exitCheck.remove();
-
-          return { exited: true };
-        } else if (!weave.active) {
-          this.activeWeave = null;
-          weaveMotion.remove();
-          exitCheck.remove();
-
-          return { destroyed: true };
         }
       },
       loop: true,

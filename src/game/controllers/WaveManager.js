@@ -476,12 +476,12 @@ export class WaveManager {
     // Spawn first weave immediately
     this.spawnWeaveForWave3();
 
-    // OPTIMIZED: Check less frequently (200ms instead of 100ms)
-    // and with simpler logic
+    // OPTIMIZED: Increased delay from 100ms to 300ms
+    // This reduces checks by 66% while still maintaining smooth spawning
     this.wave3WeaveInterval = this.scene.time.addEvent({
-      delay: 200, // Changed from 100ms to 200ms
+      delay: 300, // Changed from 200ms to 300ms
       callback: () => {
-        // Simple check: if no active weave, spawn one
+        // Only spawn if no active weave exists
         if (!this.obstacleSpawner.activeWeave && this.levelManager.isActive) {
           this.spawnWeaveForWave3();
         }
