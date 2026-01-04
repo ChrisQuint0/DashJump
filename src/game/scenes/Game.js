@@ -17,8 +17,8 @@ import { AudioManager } from "../controllers/AudioManager";
 
 // ===== DEVELOPMENT MODE =====
 // Set this to true to skip tutorial, dialogue, and wave 1
-const DEV_MODE = false;
-const DEV_START_WAVE = 2; // Which wave to start on
+const DEV_MODE = true;
+const DEV_START_WAVE = 3; // Which wave to start on
 // ============================
 
 export class Game extends Scene {

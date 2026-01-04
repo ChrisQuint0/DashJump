@@ -18,7 +18,6 @@ export class AudioManager {
       this.scene.sound.context.state === "suspended"
     ) {
       this.scene.sound.context.resume().then(() => {
-        console.log("Audio context resumed successfully");
         this.audioUnlocked = true;
       });
     } else {
@@ -39,7 +38,6 @@ export class AudioManager {
     // Play immediately (no delay needed)
     try {
       this.scene.sound.play("click", { volume: 0.5 });
-      console.log("Click sound played");
     } catch (error) {
       console.error("Error playing click sound:", error);
     }
@@ -58,7 +56,6 @@ export class AudioManager {
     // Play immediately
     try {
       this.scene.sound.play("dash", { volume: 0.4 });
-      console.log("Dash sound played");
     } catch (error) {
       console.error("Error playing dash sound:", error);
     }
@@ -77,7 +74,6 @@ export class AudioManager {
     // Play immediately
     try {
       this.scene.sound.play("jump", { volume: 0.4 });
-      console.log("Jump sound played");
     } catch (error) {
       console.error("Error playing jump sound:", error);
     }
@@ -96,7 +92,6 @@ export class AudioManager {
     // Play immediately
     try {
       this.scene.sound.play("spike", { volume: 0.5 });
-      console.log("Spike sound played");
     } catch (error) {
       console.error("Error playing spike sound:", error);
     }
@@ -115,7 +110,6 @@ export class AudioManager {
     // Play immediately
     try {
       this.scene.sound.play("roll", { volume: 0.4 });
-      console.log("Roll sound played");
     } catch (error) {
       console.error("Error playing roll sound:", error);
     }
@@ -134,15 +128,12 @@ export class AudioManager {
     // Play immediately
     try {
       this.scene.sound.play("plasma", { volume: 0.3 });
-      console.log("Plasma sound played");
     } catch (error) {
       console.error("Error playing plasma sound:", error);
     }
   }
 
   transitionToBossMusic() {
-    console.log("Transitioning to boss music");
-
     // Fade out current background music
     if (this.bgMusic && this.bgMusic.isPlaying) {
       this.scene.tweens.add({
@@ -186,16 +177,12 @@ export class AudioManager {
         volume: 0.3,
         duration: 1000,
       });
-
-      console.log("Boss music started");
     } catch (error) {
       console.error("Error starting boss music:", error);
     }
   }
 
   transitionToWaveMusic() {
-    console.log("Transitioning back to wave music");
-
     // Fade out boss music
     if (this.bgMusic && this.bgMusic.isPlaying) {
       this.scene.tweens.add({
@@ -223,7 +210,6 @@ export class AudioManager {
 
     // ALWAYS stop existing music first to prevent overlaps
     if (this.bgMusic) {
-      console.log("Stopping existing music before starting wave music");
       this.bgMusic.stop();
       this.bgMusic.destroy();
       this.bgMusic = null;
@@ -247,7 +233,6 @@ export class AudioManager {
 
         this.bgMusic.play();
         this.isMusicPlaying = true;
-        console.log("Background music started at 30% volume");
       } catch (error) {
         console.error("Error starting background music:", error);
       }
@@ -260,7 +245,6 @@ export class AudioManager {
 
     // Stop any existing music first
     if (this.bgMusic) {
-      console.log("Stopping existing music before starting ending music");
       this.bgMusic.stop();
       this.bgMusic.destroy();
       this.bgMusic = null;
@@ -284,7 +268,6 @@ export class AudioManager {
 
         this.bgMusic.play();
         this.isMusicPlaying = true;
-        console.log("Ending music started at 30% volume");
       } catch (error) {
         console.error("Error starting ending music:", error);
       }
